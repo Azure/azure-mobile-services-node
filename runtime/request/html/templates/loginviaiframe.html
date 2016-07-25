@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<html>
+<body>
+    <script type="text/javascript">
+        (function() {
+            var envelope = { type: "LoginCompleted", oauth: {{oauth}}, error: {{error}} },
+                receiverFrameName = "zumo-login-receiver",
+                tryPassingInterval = null;
+            
+            function getOriginRoot(url) {
+                var parser = document.createElement("a");
+                parser.href = url;
+                return parser.protocol + "//" + parser.hostname + ":" + parser.port;
+            }
+
+            function tryPassingToReceiver() {
+                // Unfortunately IE will not let us communicate with window.opener if it's
+                // on a different "zone" (e.g., if it's on Intranet Zone, while the Mobile
+                // Service is on Internet Zone).
+                var isIE = navigator.userAgent.indexOf("MSIE") >= 0 || navigator.userAgent.indexOf("Trident") >= 0;
+                if (isIE && !window.opener) {
+                    var messageElem = document.createElement("div");
+                    messageElem.innerHTML = "<p>Cannot reach window opener. It may be on a different Internet Explorer zone.</p>";
+                    document.body.appendChild(messageElem);
+                    clearInterval(tryPassingInterval);
+                    return;
+                }
+
+                // Ensure the frame exists and is on the right origin
+                // (Same-origin policy should prevent calling a different origin anyway)
+                var frame = window.opener.frames[receiverFrameName],
+                    frameWindow = frame && frame.window,
+                    frameOrigin = frameWindow && getOriginRoot(frameWindow.location.href),
+                    popupOrigin = getOriginRoot(window.location.href);
+                if (frameOrigin !== popupOrigin) {
+                    return;
+                }
+
+                if (frameWindow.transferLoginResult) {
+                    clearInterval(tryPassingInterval);
+
+                    // On IE8, can't invoke transferLoginResult directly, as the other window
+                    // has a different Function instance which this window doesn't regard as
+                    // callable. Workaround via eval:
+                    var envelopeJson = JSON.stringify(envelope),
+                        script = "transferLoginResult(" + envelopeJson + ")";
+                    frameWindow.eval(script);
+                }
+            }
+
+            // We don't know how long it will take for the receiver to load, so keep checking
+            tryPassingInterval = setInterval(tryPassingToReceiver, 250);
+        })();
+    </script>
+</body>
+</html>

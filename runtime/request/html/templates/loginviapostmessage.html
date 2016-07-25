@@ -1,0 +1,10 @@
+﻿<!DOCTYPE html>
+<html>
+<body>
+    <script type="text/javascript">
+        var recipientOrigin = {{origin}},
+            envelope = { type: "LoginCompleted", oauth: {{oauth}}, error: {{error}} };
+        window.opener.postMessage(JSON.stringify(envelope), recipientOrigin);
+    </script>
+</body>
+</html>
