@@ -5,6 +5,10 @@ This repository contains the source code for the Azure Mobile Services Node.js b
 **Azure Mobile Services has been deprecated.** Please use [Azure Mobile Apps](https://azure.microsoft.com/en-us/services/app-service/mobile/) 
 instead. For more information, see <https://azure.microsoft.com/en-us/blog/transition-of-azure-mobile-services/>.
 
+## Contributions
+
+We are not accepting contributions to this repository at this time.
+
 ## License
 
 [MIT](./LICENSE)
