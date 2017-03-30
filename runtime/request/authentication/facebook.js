@@ -217,7 +217,7 @@ function _retrieveLongLivedAccessToken(options, errorPrefix, callback) {
         // Parse the body into the providerToken
         if (!error) {
             try {
-                providerToken = url.parse('?' + body, true).query.access_token;
+              providerToken = JSON.parse(body).access_token;
             }
             catch (err) {
                 error = err;
