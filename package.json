@@ -1,6 +1,6 @@
 {
   "name": "azure-mobile-services",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Build mobile apps with data storage, push notifications and offline sync in minutes.",
   "main": "app.js",
   "author": {
