@@ -6,17 +6,18 @@
 // login modules, it implements a very specific interface that is documented in
 // ../loginhandler.js.
 
-var core = require('../../core'),
-    crypto = require('crypto'),
-    jsonWebToken = require('../../jsonwebtoken'),
-    Buffer = require('buffer').Buffer,
-    LoginHandler = require('../loginhandler.js'),
-    AadCert = require('./aadcert'),
-    certCacheHelper = require('./certcachehelper'),
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    request = require('request'),
-    xml2js = require('xml2js');
+var core = require('../../core');
+
+var crypto = require('crypto');
+var jsonWebToken = require('../../jsonwebtoken');
+var Buffer = require('buffer').Buffer;
+var LoginHandler = require('../loginhandler.js');
+var AadCert = require('./aadcert');
+var certCacheHelper = require('./certcachehelper');
+var _ = require('underscore');
+var _str = require('underscore.string');
+var request = require('request');
+var xml2js = require('xml2js');
 
 _.mixin(_str.exports());
 
@@ -46,7 +47,7 @@ AadLoginHandler.prototype.initialize = function (done) {
     this._initializeIssuers(done);
 };
 
-AadLoginHandler.prototype.isNewServerFlowRequest = function (request) {
+AadLoginHandler.prototype.isNewServerFlowRequest = request => {
     var isNewFlow = true;
 
     // If the query includes either a 'id_token' parameter or an 'error' parameter
@@ -74,7 +75,7 @@ AadLoginHandler.prototype.getNewServerFlowResponseHeaders = function (request, c
     callback(null, headers);
 };
 
-AadLoginHandler.prototype.getProviderTokenFromClientFlowRequest = function (request, callback) {
+AadLoginHandler.prototype.getProviderTokenFromClientFlowRequest = (request, callback) => {
     callback(new core.MobileServiceError('POST of AAD token is not supported.', core.ErrorCodes.MethodNotAllowed), null);
 };
 
@@ -90,11 +91,11 @@ AadLoginHandler.prototype.getProviderTokenFromServerFlowRequest = function (requ
         return;
     }
 
-    var clientId = this.authenticationCredentials.aad.clientId,
-        idToken = request.query.id_token,
-        self = this;
+    var clientId = this.authenticationCredentials.aad.clientId;
+    var idToken = request.query.id_token;
+    var self = this;
 
-    certCacheHelper.validateToken(this.aadCert, idToken, function (error, validatedToken) {
+    certCacheHelper.validateToken(this.aadCert, idToken, (error, validatedToken) => {
         if (error) {
             callback(error, null);
             return;
@@ -119,7 +120,7 @@ AadLoginHandler.prototype.getProviderTokenFromServerFlowRequest = function (requ
     });
 };
 
-AadLoginHandler.prototype.getAuthorizationDetailsFromProviderToken = function (request, claims, callback, options) {
+AadLoginHandler.prototype.getAuthorizationDetailsFromProviderToken = (request, claims, callback, options) => {
     var authorizationDetails = {
         providerId: claims.sub, // sub is the only 100% unique claims field that is on all AAD users regardless of their type
         claims: {
@@ -136,8 +137,8 @@ AadLoginHandler.prototype.getAuthorizationDetailsFromProviderToken = function (r
 // resolve any configured tenant domains to their corresponding issuer values
 // by querying AAD metadata for each
 AadLoginHandler.prototype._initializeIssuers = function (done) {
-    var tenants = this.authenticationCredentials.aad.tenants,
-        self = this;
+    var tenants = this.authenticationCredentials.aad.tenants;
+    var self = this;
 
     if (!tenants) {
         // if no tenants are configured, no work to do
@@ -148,21 +149,19 @@ AadLoginHandler.prototype._initializeIssuers = function (done) {
     // create a set of tasks, each of which will query AAD metadata
     // for a tenant domain and return the corresponding issuer
     self.validIssuers = [];
-    var tasks = _.map(tenants, function (tenant) {
-        return function (done) {
-            self._getIssuerForTenantDomain(tenant, function (err, issuer) {
-                if (err) {
-                    var msg = _.sprintf(
-                        "Error attempting to query tenant metadata for tenant '%s'. Please verify that each of the " +
-                        "tenants specified is a valid tenant domain (e.g., abc.onmicrosoft.com). %s", tenant, err);
-                    var ex = new core.MobileServiceError(msg, core.ErrorCodes.BadInput);
-                    self.logger.logUser('', LogType.Error, ex);
-                    throw ex;
-                }
-                self.validIssuers.push(issuer);
-                done();
-            });
-        };
+    var tasks = _.map(tenants, tenant => done => {
+        self._getIssuerForTenantDomain(tenant, (err, issuer) => {
+            if (err) {
+                var msg = _.sprintf(
+                    "Error attempting to query tenant metadata for tenant '%s'. Please verify that each of the " +
+                    "tenants specified is a valid tenant domain (e.g., abc.onmicrosoft.com). %s", tenant, err);
+                var ex = new core.MobileServiceError(msg, core.ErrorCodes.BadInput);
+                self.logger.logUser('', LogType.Error, ex);
+                throw ex;
+            }
+            self.validIssuers.push(issuer);
+            done();
+        });
     });
 
     // now execute the tasks in parallel
@@ -172,10 +171,10 @@ AadLoginHandler.prototype._initializeIssuers = function (done) {
 // Call out to the AAD metadata endpoint for the specified tenant domain
 // to get the issuer. E.g. test.onmicrosoft.com => https://sts.windows.net/ae549c78-14a5-4fc8-9719-df4e1007990a
 AadLoginHandler.prototype._getIssuerForTenantDomain = function (tenant, callback) {
-    var metadataUri = _.sprintf('https://%s/%s/federationmetadata/2007-06/federationmetadata.xml', this.loginEndpoint, tenant),
-        parser = new xml2js.Parser();
+    var metadataUri = _.sprintf('https://%s/%s/federationmetadata/2007-06/federationmetadata.xml', this.loginEndpoint, tenant);
+    var parser = new xml2js.Parser();
 
-    request(metadataUri, function (err, res, body) {
+    request(metadataUri, (err, res, body) => {
         if (res.statusCode != 200) {
             // if the response body includes error details return them
             err = body || 'An unspecified error occurred.';

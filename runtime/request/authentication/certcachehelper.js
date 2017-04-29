@@ -8,7 +8,7 @@ var jsonWebToken = require('../../jsonwebtoken');
 
 exports = module.exports;
 
-exports.isExpired = function (expDate, now) {
+exports.isExpired = (expDate, now) => {
     if (!now) {
         now = new Date();
     }
@@ -20,7 +20,7 @@ exports.createExpiryDateFromHours = function (hoursInFuture, now) {
     return this.createExpiryDateFromMinutes(hoursInFuture * 60, now);
 };
 
-exports.createExpiryDateFromMinutes = function (minutesInFuture, now) {
+exports.createExpiryDateFromMinutes = (minutesInFuture, now) => {
     if (!now) {
         now = new Date();
     }
@@ -34,8 +34,9 @@ exports.createExpiryDateFromMinutes = function (minutesInFuture, now) {
 exports.refreshIntervalExpired = function (minRefreshIntervalMinutes, lastRefresh) {
     // We allow a refresh only if we haven't refreshed in the
     // last minRefreshIntervalMinutes
-    var notBeforeDate = this.createExpiryDateFromMinutes(minRefreshIntervalMinutes, lastRefresh),
-        now = new Date();
+    var notBeforeDate = this.createExpiryDateFromMinutes(minRefreshIntervalMinutes, lastRefresh);
+
+    var now = new Date();
 
     return this.isExpired(notBeforeDate, now);
 };
@@ -43,13 +44,13 @@ exports.refreshIntervalExpired = function (minRefreshIntervalMinutes, lastRefres
 // Attempts to validate the specified token using the provided cert manager.
 // If the token fails validation due to a kid/x5t lookup failure, a cert
 // refresh will be performed, and the validation will be attempted once more.
-exports.validateToken = function (certManager, token, callback) {
+exports.validateToken = (certManager, token, callback) => {
     var retry = true;
 
     // define a function to get the certs and validate the token,
     // so that in the case of failures we can retry
-    var validateToken = function (options) {
-        certManager.getCerts(function (error, certs) {
+    var validateToken = options => {
+        certManager.getCerts((error, certs) => {
             if (error) {
                 callback(error);
                 return;

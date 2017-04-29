@@ -1,13 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
-var core = require('../../core'),
-    resources = require('../../resources'),
-    StatusCodes = require('../../statuscodes').StatusCodes,
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    apns = require('apn');
+var core = require('../../core');
 
-var ApnConnectionFactory = (function () {
+var resources = require('../../resources');
+var StatusCodes = require('../../statuscodes').StatusCodes;
+var _ = require('underscore');
+var _str = require('underscore.string');
+var apns = require('apn');
+
+var ApnConnectionFactory = ((() => {
 
     function ApnConnectionFactory(certLoader, passphrase, gateway, timeout) {
         this.certLoader = certLoader;
@@ -43,7 +44,7 @@ var ApnConnectionFactory = (function () {
         var pfxData = this.certLoader();
 
         this.options = {
-            pfxData: pfxData,
+            pfxData,
             passphrase: this.passphrase,
             gateway: this.gateway
         };
@@ -62,14 +63,14 @@ var ApnConnectionFactory = (function () {
     ApnConnectionFactory.prototype._disposeConnection = function () {
         if (this.connection !== null) {
             var self = this;
-            this.connection.sockets.forEach(function (socket) {
+            this.connection.sockets.forEach(socket => {
                 self.connection.destroyConnection(socket);
             });
         }
     };
 
     return ApnConnectionFactory;
-})();
+}))();
 
 
 module.exports = exports = ApnConnectionFactory;

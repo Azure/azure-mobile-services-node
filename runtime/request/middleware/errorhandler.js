@@ -5,11 +5,12 @@
 // This middleware sits at the end of the pipeline to catch errors and create a suitable response
 // If the previous middleware gracefully sent the response then errorHandler won't be called.
 
-var core = require('../../core'),
-    StatusCodes = require('../../statuscodes').StatusCodes,
-    scriptErrors = require('../../script/scripterror'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var core = require('../../core');
+
+var StatusCodes = require('../../statuscodes').StatusCodes;
+var scriptErrors = require('../../script/scripterror');
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
@@ -20,11 +21,11 @@ function ErrorHandler(logSource) {
 }
 
 ErrorHandler.prototype.handle = function (err, req, res, next) {
-    var context = req._context,
-        logger = context.logger,
-        writeResponse = context.responseCallback,
-        parsedRequest = context.parsedRequest;
-        
+    var context = req._context;
+    var logger = context.logger;
+    var writeResponse = context.responseCallback;
+    var parsedRequest = context.parsedRequest;
+
     try {
         var statusCode = StatusCodes.INTERNAL_SERVER_ERROR;
         if (err.timeout && err.status == 503) {

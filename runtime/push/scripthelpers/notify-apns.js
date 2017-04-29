@@ -4,14 +4,15 @@
 // This module supports sending push notifications to iOS clients using the
 // Apple Push Notification Service
 
-var core = require('../../core'),
-    resources = require('../../resources'),
-    apns = require('apn'),
-    notify = require('./notify'),
-    fs = require('fs'),
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    ApnConnectionFactory = require('./apnconnectionfactory');
+var core = require('../../core');
+
+var resources = require('../../resources');
+var apns = require('apn');
+var notify = require('./notify');
+var fs = require('fs');
+var _ = require('underscore');
+var _str = require('underscore.string');
+var ApnConnectionFactory = require('./apnconnectionfactory');
 
 _.mixin(_str.exports());
 
@@ -29,7 +30,7 @@ var statusDescriptions = {
     255: 'None (unknown)'
 };
 
-exports.getCertLoader = function (apnsCertificatePath) {
+exports.getCertLoader = apnsCertificatePath => {
     var pfxData = null;
 
     function getCertificate(action) {
@@ -42,7 +43,7 @@ exports.getCertLoader = function (apnsCertificatePath) {
     return getCertificate;
 };
 
-exports.createApnsContext = function (apnsCertificatePath, apnsPassword, apnsMode) {
+exports.createApnsContext = (apnsCertificatePath, apnsPassword, apnsMode) => {
 
     var gateway = (apnsMode == 'Prod') ? 'gateway.push.apple.com' : 'gateway.sandbox.push.apple.com';
 
@@ -56,7 +57,7 @@ exports.createApnsContext = function (apnsCertificatePath, apnsPassword, apnsMod
     // when sending notifications. We use an 'interval' of 0 below to ensure the feedback instance
     // doesn't set it's own timer.
     var feedbackOptions = null;
-    var feedbackOptionsFactory = function () {
+    var feedbackOptionsFactory = () => {
         if (!feedbackOptions) {
             feedbackOptions = {
                 pfxData: getCertificate('get APNS feedback'),
@@ -89,7 +90,7 @@ exports.createApnsContext = function (apnsCertificatePath, apnsPassword, apnsMod
     return result;
 };
 
-exports.send = function (connectionFactory, deviceToken, payload, ignore, errorCallback) {
+exports.send = (connectionFactory, deviceToken, payload, ignore, errorCallback) => {
     var connection = connectionFactory.getConnection();
 
     if (!core.isString(deviceToken)) {
@@ -108,7 +109,7 @@ exports.send = function (connectionFactory, deviceToken, payload, ignore, errorC
 
     // Create the error callback; there is no success callback because Apple doesn't
     // respond if the notification was received and validated successfully.
-    notification.errorCallback = function (error) {
+    notification.errorCallback = error => {
         if (checkCertError(error, errorCallback)) {
             return;
         }
@@ -130,7 +131,7 @@ exports.send = function (connectionFactory, deviceToken, payload, ignore, errorC
     connection.sendNotification(notification);
 };
 
-exports.createNotificationFromPayload = function (payload) {
+exports.createNotificationFromPayload = payload => {
     var notification;
 
     if (payload.aps) {
@@ -162,19 +163,19 @@ exports.createNotificationFromPayload = function (payload) {
     return notification;
 };
 
-exports.getFeedback = function (feedbackOptionsFactory, ignore, callback) {
+exports.getFeedback = (feedbackOptionsFactory, ignore, callback) => {
     var feedbackOptions = feedbackOptionsFactory();
 
     var options = {};
     core.extend(options, feedbackOptions);
 
     // Set the feedback callback; this is the success callback
-    options.feedback = function (feedback) {
+    options.feedback = feedback => {
 
         // We need to convert the feedback we get from the APN
         // module to something more user friendly
         var converted = [];
-        feedback.forEach(function (item) {
+        feedback.forEach(item => {
             converted.push({
                 deviceToken: item.device.toString(),
                 timeStamp: new Date(item.time * 1000)
@@ -185,7 +186,7 @@ exports.getFeedback = function (feedbackOptionsFactory, ignore, callback) {
     };
 
     // Set the errorCAllback; this is the error callback
-    options.errorCallback = function (error) {
+    options.errorCallback = error => {
         if (checkCertError(error, callback)) {
             return;
         }

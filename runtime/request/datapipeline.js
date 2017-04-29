@@ -6,17 +6,18 @@
 // if defined for the operation. Script services are exposed to scripts via the context argument
 // passed to the script function. A separate dataPipeline instance is created per request.
 
-var core = require('../core'),
-    DataOperation = require('./dataoperation'),
-    scriptErrors = require('../script/scripterror'),
-    ScriptState = require('../script/scriptstate'),
-    ScriptManager = require('../script/scriptmanager'),
-    resource = require('../resources'),
-    Query = require('../Zumo.Node').Query,
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var core = require('../core');
 
- _.mixin(_str.exports());
+var DataOperation = require('./dataoperation');
+var scriptErrors = require('../script/scripterror');
+var ScriptState = require('../script/scriptstate');
+var ScriptManager = require('../script/scriptmanager');
+var resource = require('../resources');
+var Query = require('../Zumo.Node').Query;
+var _ = require('underscore');
+var _str = require('underscore.string');
+
+_.mixin(_str.exports());
 
 require('../storage/sqlhelpers');
 
@@ -51,7 +52,7 @@ DataPipeline.prototype.read = function (query, responseCallback) {
     // if this is a query by id, we wrap the response callback
     // so we can do result validation to make sure only a singleton is returned
     if (query.id) {
-        responseCallback = _.wrap(responseCallback, function (originalCallback, err, results, statusCode) {
+        responseCallback = _.wrap(responseCallback, (originalCallback, err, results, statusCode) => {
             if (results && core.isArray(results)) {
                 if (results.length === 1) {
                     results = results[0];
@@ -89,7 +90,7 @@ DataPipeline.prototype.update = function (item, responseCallback) {
 
     // define a pre-execute callback to do validation of the operation
     // prior to actually executing the data opration
-    var executeCallback = function (scriptArg) {
+    var executeCallback = scriptArg => {
         if (scriptArg.id !== originalId) {
             var error = new core.MobileServiceError("Update scripts cannot modify the id of the item to be updated.", core.ErrorCodes.ScriptError);
 
@@ -141,7 +142,7 @@ DataPipeline.prototype._executeScript = function (operationName, scriptArg, resp
         var logSourceName = self.scriptManager.getLogSourceName(this.table, operationName);
         // Create a small state machine which will manage script execution.
         var scriptState = new ScriptState(operationName, scriptArg, tableMetadata, responseCallback, self.logger, logSourceName);
-        scriptState.executeCallback = function (scriptCallback, systemParameters) {
+        scriptState.executeCallback = (scriptCallback, systemParameters) => {
             // If the callback doesn't exist or returns true, run the data operation
             if (!executeCallback || executeCallback(scriptArg)) {
                 var dataOperation = self._createDataOperation(operationName);
@@ -150,14 +151,14 @@ DataPipeline.prototype._executeScript = function (operationName, scriptArg, resp
             }
         };
 
-        self.operationContext.execute = function (callbackOptions) {
+        self.operationContext.execute = callbackOptions => {
             self.logger.trace(logSource, 'Script called execute');
             scriptState.execute(callbackOptions);
         };
 
         self.operationContext.respond = function (statusCode, result) {
             self.logger.trace(logSource, 'Script called respond');
-            scriptState.respond.apply(scriptState, arguments);
+            scriptState.respond(...arguments);
         };
 
         var runnerOptions = {
@@ -211,22 +212,20 @@ DataPipeline.prototype.getQueryBuilder = function (query) {
     return queryBuilder;
 };
 
-DataPipeline.prototype._wrapWithNoScriptErrorTransforms = function (responseCallback) {
-    return _.wrap(responseCallback, function (oldCallback, err, result, statusCode) {
-        // There is no script. Any non application level sql error will be treated
-        // as an end user input error.
-        if (SqlHelpers.isSqlError(err) && !SqlHelpers.isApplicationError(err)) {
-            oldCallback(new core.MobileServiceError(resource.badRequest, core.ErrorCodes.BadInput));
-        } else {
-            oldCallback(err, result, statusCode);
-        }
-    });
-};
+DataPipeline.prototype._wrapWithNoScriptErrorTransforms = responseCallback => _.wrap(responseCallback, (oldCallback, err, result, statusCode) => {
+    // There is no script. Any non application level sql error will be treated
+    // as an end user input error.
+    if (SqlHelpers.isSqlError(err) && !SqlHelpers.isApplicationError(err)) {
+        oldCallback(new core.MobileServiceError(resource.badRequest, core.ErrorCodes.BadInput));
+    } else {
+        oldCallback(err, result, statusCode);
+    }
+});
 
 DataPipeline.prototype._wrapWithUserLogging = function (responseCallback, operationName) {
     var self = this;
 
-    return _.wrap(responseCallback, function (oldCallback, err, result, statusCode) {
+    return _.wrap(responseCallback, (oldCallback, err, result, statusCode) => {
         // This callback pass-through will log any unhandled/unlogged SQL error messages
         // that are about to be passed up stack and returned to the user.
         // This block of code will log all unhandled SQL errors regardless of

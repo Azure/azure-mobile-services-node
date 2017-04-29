@@ -4,13 +4,14 @@
 //
 // This class encapsulates the business logic for promoting anonymous user to registered user and adding identity of an existing user
 
-var _ = require('underscore'),
-    _str = require('underscore.string'),
-    core = require('../core.js'),
-    Storage = require('../storage/storage.js'),
-    UserStore = require('./userstore.js'),
-    UserProperties = require('./userproperties'),
-    logSource = 'UserService';
+var _ = require('underscore');
+
+var _str = require('underscore.string');
+var core = require('../core.js');
+var Storage = require('../storage/storage.js');
+var UserStore = require('./userstore.js');
+var UserProperties = require('./userproperties');
+var logSource = 'UserService';
 
 _.mixin(_str.exports());
 
@@ -25,7 +26,7 @@ function UserService(logger, userStore, userProperties, encryptClaims) {
 UserService.prototype.isEnabled = function (callback) {
     var self = this;
 
-    this.userStore.isEnabled(function (err, isEnabled) {
+    this.userStore.isEnabled((err, isEnabled) => {
         if (err) {
             return self._handleStorageError(err, callback);
         }
@@ -38,7 +39,7 @@ UserService.prototype.isEnabled = function (callback) {
 UserService.prototype.getUserIdentities = function (id, callback) {
     var self = this;
 
-    this.getUserById(id, function (err, user) {
+    this.getUserById(id, (err, user) => {
         if (err) {
             callback(err);
             return;
@@ -51,7 +52,7 @@ UserService.prototype.getUserIdentities = function (id, callback) {
             // { microsoft: { userId: 1234, email: 'someone@example.com'},
             //   facebook: { userId: 345, name: 'john' } }
             self._getAllProviderProperties(user)
-                .forEach(function (item) {
+                .forEach(item => {
                     if (item.properties) {
                         var identity = self._userPropertiesToIdentity(item.provider, item.providerId, item.properties);
                         identities[item.provider] = identity;
@@ -67,7 +68,7 @@ UserService.prototype.getUserIdentities = function (id, callback) {
 UserService.prototype.getUserById = function (id, callback) {
     var self = this;
 
-    this.userStore.getUserById(id, function (err, user) {
+    this.userStore.getUserById(id, (err, user) => {
         if (err) {
             return self._handleStorageError(err, callback);
         }
@@ -75,7 +76,7 @@ UserService.prototype.getUserById = function (id, callback) {
         if (user) {
             // provider properties are packed in storage and need to be unpacked
             self._getAllProviderProperties(user)
-                .forEach(function (item) {
+                .forEach(item => {
                     user[item.key] = self.userProperties.unpack(item.properties);
                 });
         }        
@@ -99,7 +100,7 @@ UserService.prototype.addUserIdentity = function (provider, providerId, properti
 
     properties = this.userProperties.pack(properties);
 
-    this.userStore.getUserByProviderId(provider, providerId, function (err, user) {
+    this.userStore.getUserByProviderId(provider, providerId, (err, user) => {
         if (err) {
             return self._handleStorageError(err, callback);
         }
@@ -114,14 +115,14 @@ UserService.prototype.addUserIdentity = function (provider, providerId, properti
 };
 
 // returns all providers on user object
-UserService.prototype._getAllProviderProperties = function (user) {
+UserService.prototype._getAllProviderProperties = user => {
     // user table in database has columns for each provider, prefixed by provider name
-    var allProperties = _.filter(Object.keys(user), function (propName) { return _.endsWith(propName, 'Properties'); })
-                         .map(function (propName) {
+    var allProperties = _.filter(Object.keys(user), propName => _.endsWith(propName, 'Properties'))
+                         .map(propName => {
                             var provider = _.strLeft(propName, 'Properties');
                             return {
                                 key: propName,
-                                provider: provider,
+                                provider,
                                 providerId: user[provider + 'Id'],
                                 properties: user[propName]            
                             };
@@ -131,7 +132,7 @@ UserService.prototype._getAllProviderProperties = function (user) {
 };
 
 // converts the properties object into user identity object returned from user.getIdentities()
-UserService.prototype._userPropertiesToIdentity = function (provider, providerId, properties) {
+UserService.prototype._userPropertiesToIdentity = (provider, providerId, properties) => {
     var claims = properties.claims || {};
     var identity = _.extend(claims, properties.secrets);    
     if (providerId) {
@@ -144,7 +145,7 @@ UserService.prototype._userPropertiesToIdentity = function (provider, providerId
 UserService.prototype._createUser = function (provider, providerId, properties, callback) {
     var self = this;
 
-    this.userStore.createUser(provider, providerId, properties, function (err, user) {
+    this.userStore.createUser(provider, providerId, properties, (err, user) => {
         if (err) {
             return self._handleStorageError(err, callback);
         }
@@ -154,9 +155,9 @@ UserService.prototype._createUser = function (provider, providerId, properties, 
 };
 
 UserService.prototype._addIdentityToUser = function (user, provider, providerId, properties, callback) {
-    var self = this,
-        idKey = provider + 'Id',
-        propertiesKey = provider + 'Properties';
+    var self = this;
+    var idKey = provider + 'Id';
+    var propertiesKey = provider + 'Properties';
 
     var modified = user[idKey] !== providerId || user[propertiesKey] !== properties;
     if (!modified) {
@@ -167,7 +168,7 @@ UserService.prototype._addIdentityToUser = function (user, provider, providerId,
     user[idKey] = providerId.toString();
     user[propertiesKey] = properties;
 
-    this.userStore.updateUser(user, function (err, rowCount) {
+    this.userStore.updateUser(user, (err, rowCount) => {
         if (err) {
             return self._handleStorageError(err, callback);
         }
@@ -183,9 +184,9 @@ UserService.prototype._handleStorageError = function (err, callback) {
 
 // implements null object pattern by creating a user service like object that is always disabled. 
 Object.defineProperty(UserService, 'nullService', {
-    get: function () {
+    get() {
         return {
-            isEnabled: function (callback) {
+            isEnabled(callback) {
                 callback(null, false);
             }
         };
@@ -193,7 +194,7 @@ Object.defineProperty(UserService, 'nullService', {
 });
 
 // factory method for creating user service instance 
-UserService.create = function (options, previewFeatures, metrics, logger) {
+UserService.create = (options, previewFeatures, metrics, logger) => {
     options = options || {};
 
     var featureEnabled = _.contains(previewFeatures, 'Users');
@@ -212,12 +213,10 @@ UserService.create = function (options, previewFeatures, metrics, logger) {
 };
 
 // get provider name by provider specific user id issued by zumo
-UserService.getProviderNameByUserId = function (userId) {
-    return _.strLeft(userId, ':');
-};
+UserService.getProviderNameByUserId = userId => _.strLeft(userId, ':');
 
 // returns full name of provider for short code
-UserService.getProviderNameByKey = function (key) {
+UserService.getProviderNameByKey = key => {
     var name = key.toLowerCase();
     if (name == 'microsoft') {
         name = 'MicrosoftAccount';
@@ -226,7 +225,7 @@ UserService.getProviderNameByKey = function (key) {
 };
 
 // derive short code for provider from its full name
-UserService.getProviderKeyByName = function (name) {
+UserService.getProviderKeyByName = name => {
     var key = name.toLowerCase();
     if (key == 'microsoftaccount') {
         key = 'microsoft';

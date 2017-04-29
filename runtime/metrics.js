@@ -26,7 +26,7 @@ function Metrics(logger, sampleTimeout) {
 
     // Aggregate and send the logs every sampleTimeout ms
     if (sampleTimeout) {
-        setInterval(function() {
+        setInterval(() => {
             self.flush();
         }, sampleTimeout);
     }
@@ -37,11 +37,11 @@ Metrics.prototype.reset = function() {
     this.events = {};
 };
 
-Metrics.prototype.startEvent = function (name) {
+Metrics.prototype.startEvent = name => {
     name = name.toLowerCase();
     var now = new Date();
     return {
-        name: name,
+        name,
         startTime: now.getTime()
     };
 };
@@ -80,7 +80,7 @@ Metrics.prototype.event = function (name) {
     name = name.toLowerCase();
 
     var event = {
-        name: name,
+        name,
         value: 0 // Events that are triggered via this function are for counting only
     };
 
@@ -235,8 +235,6 @@ InstallationsProcessor.prototype._setCacheExpiry = function (date) {
     this.cacheExpiry = expiry;
 };
 
-InstallationsProcessor.prototype._addDays = function (date, days) {
-    // return a new date with the specified number of
-    // days added to the specified date
-    return new Date(date.setDate(date.getDate() + days));
-};
+InstallationsProcessor.prototype._addDays = (date, days) => // return a new date with the specified number of
+// days added to the specified date
+new Date(date.setDate(date.getDate() + days));

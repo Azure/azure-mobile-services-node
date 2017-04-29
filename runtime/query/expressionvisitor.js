@@ -2,22 +2,22 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-(function (global) {
+((global => {
 
     var core = require('../core');
 
     require('./expressions');
 
     var instanceMembers = {
-        visit: function (expr) {
+        visit(expr) {
             return expr.accept(this);
         },
 
-        visitConstant: function (expr) {
+        visitConstant(expr) {
             return expr;
         },
 
-        visitBinary: function (expr) {
+        visitBinary(expr) {
             var left = null;
             var right = null;
 
@@ -34,7 +34,7 @@
             return expr;
         },
 
-        visitUnary: function (expr) {
+        visitUnary(expr) {
             var operand = this.visit(expr.operand);
             if (operand != expr.operand) {
                 return new UnaryExpression(operand, expr.expressionType);
@@ -42,15 +42,15 @@
             return expr;
         },
 
-        visitMember: function (expr) {
+        visitMember(expr) {
             return expr;
         },
 
-        visitParameter: function (expr) {
+        visitParameter(expr) {
             return expr;
         },
 
-        visitFunction: function (expr) {
+        visitFunction(expr) {
             var updated = false;
 
             var instance = expr.instance;
@@ -61,10 +61,10 @@
                 }
             }
 
-            var args = [expr.args.length],
-                i = 0,
-                self = this;
-            expr.args.forEach(function (arg) {
+            var args = [expr.args.length];
+            var i = 0;
+            var self = this;
+            expr.args.forEach(arg => {
                 var newArg = self.visit(arg);
                 args[i++] = arg;
                 if (newArg != arg) {
@@ -81,4 +81,4 @@
 
     ExpressionVisitor = core.defineClass(null, instanceMembers);
 
-})(typeof exports === "undefined" ? this : exports);
+}))(typeof exports === "undefined" ? this : exports);

@@ -7,26 +7,27 @@
 // level on the request. If the request is unauthenticated, this handler will
 // end the request.
 
-var StatusCodes = require('../../statuscodes').StatusCodes,
-    jsonWebToken = require('../../jsonwebtoken'),
-    User = require('../user'),
-    UserService = require('../../users/userservice'),
-    core = require('../../core'),    
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var StatusCodes = require('../../statuscodes').StatusCodes;
+
+var jsonWebToken = require('../../jsonwebtoken');
+var User = require('../user');
+var UserService = require('../../users/userservice');
+var core = require('../../core');
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
 function authenticate(logSource, keys, userService) {
-    return function (req, res, next) {
-        var requestContext = req._context,
-            responseCallback = requestContext.responseCallback,
-            logger = requestContext.logger,
-            metrics = requestContext.metrics,
-            parsedRequest = requestContext.parsedRequest;
+    return (req, res, next) => {
+        var requestContext = req._context;
+        var responseCallback = requestContext.responseCallback;
+        var logger = requestContext.logger;
+        var metrics = requestContext.metrics;
+        var parsedRequest = requestContext.parsedRequest;
 
         logger.trace(logSource, 'Authenticating request');
-        
+
         if (parsedRequest.authenticationKey) {
             // determine the key to use, based on operation type
             var key = (parsedRequest.operation === 'jobs') ? keys.systemKey : keys.masterKey;

@@ -9,11 +9,12 @@
 // The server authentication flow is documented at:
 // http://msdn.microsoft.com/en-us/library/live/hh243647.aspx#authcodegrant
 
-var core = require('../../core'),
-    jsonWebToken = require('../../jsonwebtoken'),
-    LoginHandler = require('../loginhandler'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var core = require('../../core');
+
+var jsonWebToken = require('../../jsonwebtoken');
+var LoginHandler = require('../loginhandler');
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
@@ -25,7 +26,7 @@ function MicrosoftAccountLoginHandler(authenticationCredentials, logger) {
     this.logger = logger;
 }
 
-MicrosoftAccountLoginHandler.prototype.isNewServerFlowRequest = function (request) {
+MicrosoftAccountLoginHandler.prototype.isNewServerFlowRequest = request => {
     var isNewFlow = true;
 
     // If the query includes either a 'code' parameter or an 'error' parameter
@@ -55,7 +56,7 @@ MicrosoftAccountLoginHandler.prototype.getNewServerFlowResponseHeaders = functio
     callback(null, { Location: microsoftAccountUri });
 };
 
-MicrosoftAccountLoginHandler.prototype.getProviderTokenFromClientFlowRequest = function (request, callback) {
+MicrosoftAccountLoginHandler.prototype.getProviderTokenFromClientFlowRequest = (request, callback) => {
 
     var error = null;
     var providerToken = null;
@@ -107,7 +108,7 @@ MicrosoftAccountLoginHandler.prototype.getProviderTokenFromServerFlowRequest = f
         }
     };
 
-    LoginHandler.makeSecureRequest(options, data, function (error, res, body) {
+    LoginHandler.makeSecureRequest(options, data, (error, res, body) => {
 
         var providerToken = null;
 
@@ -147,13 +148,15 @@ MicrosoftAccountLoginHandler.prototype.getProviderTokenFromServerFlowRequest = f
 };
 
 MicrosoftAccountLoginHandler.prototype.getAuthorizationDetailsFromProviderToken = function (request, providerToken, callback, options) {
-    var self = this,
-        // Parse the authentication token portion of the providerToken
-        unparsedToken = providerToken.authenticationToken,
-        key = this.authenticationCredentials.microsoftaccount.clientSecret,
-        parsedToken = null,
-        error = null,
-        authorizationDetails = null;
+    var self = this;
+
+    var // Parse the authentication token portion of the providerToken
+    unparsedToken = providerToken.authenticationToken;
+
+    var key = this.authenticationCredentials.microsoftaccount.clientSecret;
+    var parsedToken = null;
+    var error = null;
+    var authorizationDetails = null;
 
     try {
         parsedToken = jsonWebToken.parse(unparsedToken, key, jsonWebToken.windowsLiveSigningSuffix);
@@ -177,15 +180,16 @@ MicrosoftAccountLoginHandler.prototype.getAuthorizationDetailsFromProviderToken 
     }
 
     if (authorizationDetails && authorizationDetails.secrets.accessToken && options.usersEnabled) {
-        var microsftUri = '/v5.0/me?access_token=' + encodeURIComponent(authorizationDetails.secrets.accessToken),
-            graphApi = {
-                host: 'apis.live.net',
-                port: 443,
-                path: microsftUri,
-                method: 'GET'
-            };
+        var microsftUri = '/v5.0/me?access_token=' + encodeURIComponent(authorizationDetails.secrets.accessToken);
 
-        LoginHandler.makeSecureRequest(graphApi, null, function (error, res, body) {
+        var graphApi = {
+            host: 'apis.live.net',
+            port: 443,
+            path: microsftUri,
+            method: 'GET'
+        };
+
+        LoginHandler.makeSecureRequest(graphApi, null, (error, res, body) => {
             if (error || res.statusCode !== 200) {
                 callback(new Error('Failed to retrieve user info for microsoft account due to error: ' + error));
             }

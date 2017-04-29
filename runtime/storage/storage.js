@@ -2,12 +2,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-var sql = require('sqlserver'),
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    resource = require('../resources'),
-    core = require('../core'),
-    TableMetadata = require('./tablemetadata');
+var sql = require('sqlserver');
+
+var _ = require('underscore');
+var _str = require('underscore.string');
+var resource = require('../resources');
+var core = require('../core');
+var TableMetadata = require('./tablemetadata');
 
 _.mixin(_str.exports());
 
@@ -43,7 +44,7 @@ Storage.prototype.getTableMetadata = function (table, logger, callback) {
     }
 
     var self = this;
-    this._getTableColumns(table, logger, function (error, columns) {
+    this._getTableColumns(table, logger, (error, columns) => {
         if (error) {
             callback(error);
             return;
@@ -70,9 +71,9 @@ Storage.prototype.insert = function (table, item, logger, options, callback) {
     // item can either be a singleton or a homogeneous array
     // of items to insert in a single batch
     var insertOptions = {
-        table: table,
-        item: item,
-        logger: logger,
+        table,
+        item,
+        logger,
         retry: this.dynamicSchemaEnabled,
         systemProperties: this._getSystemPropertiesFromOptions(options)
     };
@@ -82,7 +83,7 @@ Storage.prototype.insert = function (table, item, logger, options, callback) {
 
 Storage.prototype.update = function (table, id, item, logger, options, callback) {
     var self = this;
-    this._validateId(table, id, logger, function (error) {
+    this._validateId(table, id, logger, error => {
         if (error) {
             callback(error);
             return;
@@ -99,10 +100,10 @@ Storage.prototype.update = function (table, id, item, logger, options, callback)
         }
 
         var updateOptions = {
-            table: table,
-            id: id,
-            item: item,
-            logger: logger,
+            table,
+            id,
+            item,
+            logger,
             retry: self.dynamicSchemaEnabled,
             systemProperties: self._getSystemPropertiesFromOptions(options)
         };
@@ -113,7 +114,7 @@ Storage.prototype.update = function (table, id, item, logger, options, callback)
 
 Storage.prototype.del = function (table, id, version, logger, options, callback) {
     var self = this;
-    this._validateId(table, id, logger, function (error) {
+    this._validateId(table, id, logger, error => {
         if (error) {
             callback(error);
             return;
@@ -136,7 +137,7 @@ Storage.prototype._getTableMetadataAndSupportedSystemProperties = function (tabl
 
     // get the table metadata
     var self = this;
-    this.getTableMetadata(table, logger, function (error, tableMetadata) {
+    this.getTableMetadata(table, logger, (error, tableMetadata) => {
         if (error) {
             callback(error);
             return;
@@ -145,7 +146,7 @@ Storage.prototype._getTableMetadataAndSupportedSystemProperties = function (tabl
         // check that only supported system properties are being requested
         var supportedSystemProperties = [];
         if (tableMetadata && tableMetadata.hasStringId) {
-            systemProperties.forEach(function (property) {
+            systemProperties.forEach(property => {
                 if (_.contains(tableMetadata.systemProperties, property)) {
                     supportedSystemProperties.push(property);
                 }
@@ -163,17 +164,17 @@ Storage.prototype._clearTableMetadata = function (table) {
     this.metadata[table] = null;
 };
 
-Storage.prototype._getSystemPropertiesFromOptions = function (options) {
+Storage.prototype._getSystemPropertiesFromOptions = options => {
     var systemProperties = options ? options.systemProperties || [] : [];
     return systemProperties;
 };
 
-Storage.prototype._validateProperty = function (propertyName, value) {
+Storage.prototype._validateProperty = (propertyName, value) => {
     // property name must be a valid identifier
     SqlHelpers.validateIdentifier(propertyName);
 
     // if there is a system property, make sure it is cased correctly
-    var systemColumnName = _.find(core.supportedSystemColumns, function (c) { return c.toLowerCase() === propertyName; });
+    var systemColumnName = _.find(core.supportedSystemColumns, c => c.toLowerCase() === propertyName);
     if (systemColumnName && propertyName !== systemColumnName) {
         throw new core.MobileServiceError(_.sprintf("If a value for the property '%s' is specified, the property name must be cased correctly.", systemColumn), core.ErrorCodes.BadInput);
     }
@@ -189,7 +190,7 @@ Storage.prototype._updateSchema = function (table, item, logger, callback) {
 
     var retryCount = 0;
     function tryUpdateSchema() {
-        self._getColumnsToAdd(table, item, logger, function (err, cols) {
+        self._getColumnsToAdd(table, item, logger, (err, cols) => {
             if (err) {
                 callback(err);
                 return;
@@ -207,7 +208,7 @@ Storage.prototype._updateSchema = function (table, item, logger, callback) {
             // so we don't need to do so again here
             var addColumnsSql = '';
             var columnsToAddError = null;
-            cols.forEach(function (col) {
+            cols.forEach(col => {
                 if (core.isSystemColumnName(col) &&
                     self.metadata[table].hasStringId) {
                     columnsToAddError = new core.MobileServiceError(_.sprintf("The column '%s' can not be dynamically added. Columns that begin with a '__' are considered system columns.", col), core.ErrorCodes.BadInput);
@@ -228,7 +229,7 @@ Storage.prototype._updateSchema = function (table, item, logger, callback) {
             var cmdText = _.sprintf("ALTER TABLE %s ADD %s;", tableName, addColumnsSql);
             logger.trace(logSource, 'Updating schema', 'SQL: ' + cmdText);
 
-            self._executeSql('ALTER', cmdText, null, logger, null, callback, function (err) {
+            self._executeSql('ALTER', cmdText, null, logger, null, callback, err => {
                 if (!err) {
                     logger.trace(logSource, 'Schema update succeeded.');
                     callback(null);
@@ -258,7 +259,7 @@ Storage.prototype._getTableColumns = function (table, logger, callback) {
     var statement = _.sprintf("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '%s' AND TABLE_SCHEMA = '%s'", table, this.schemaName);
 
     var self = this;
-    this._executeSql('SELECT', statement, null, logger, null, callback, function (error, results) {
+    this._executeSql('SELECT', statement, null, logger, null, callback, (error, results) => {
         if (error) {
             callback(error);
             return;
@@ -279,7 +280,7 @@ Storage.prototype._getTableColumns = function (table, logger, callback) {
 
 Storage.prototype._getColumnsToAdd = function (table, item, logger, callback) {
     var self = this;
-    this._getTableColumns(table, logger, function (error, results) {
+    this._getTableColumns(table, logger, (error, results) => {
         if (error) {
             callback(error);
             return;
@@ -315,19 +316,19 @@ Storage.prototype._getColumnsToAdd = function (table, item, logger, callback) {
 };
 
 Storage.prototype._update = function (options, callback) {
-    var table = options.table,
-        systemProperties = options.systemProperties,
-        logger = options.logger,
-        item = options.item,
-        updateStatement = options.updateStatement,
-        parameters = options.parameters,
-        self = this;    
+    var table = options.table;
+    var systemProperties = options.systemProperties;
+    var logger = options.logger;
+    var item = options.item;
+    var updateStatement = options.updateStatement;
+    var parameters = options.parameters;
+    var self = this;
 
     if (item.__version) {
         item.__version = core.normalizeVersion(item.__version);
     }
 
-    this._getTableMetadataAndSupportedSystemProperties(table, systemProperties, logger, function (error, systemProperties, tableMetadata) {
+    this._getTableMetadataAndSupportedSystemProperties(table, systemProperties, logger, (error, systemProperties, tableMetadata) => {
         if (error) {
             callback(error);
             return;
@@ -339,7 +340,7 @@ Storage.prototype._update = function (options, callback) {
         }
         else {
             // we are building the update statement for the first time
-            self._buildSqlUpdate(options, tableMetadata, systemProperties, function (error, updateStatement, parameters, version) {
+            self._buildSqlUpdate(options, tableMetadata, systemProperties, (error, updateStatement, parameters, version) => {
                 if (error) {
                     callback(error);
                     return;
@@ -360,21 +361,21 @@ Storage.prototype._update = function (options, callback) {
 };
 
 Storage.prototype._executeSqlUpdate = function (options, callback) {
-    var self = this,
-        table = options.table,
-        id = options.id,
-        systemProperties = options.systemProperties,
-        logger = options.logger,
-        item = options.item,
-        version = options.version,
-        updateRowCount = 0,
-        updateStatement = options.updateStatement,
-        parameters = options.parameters,
-        lastResult = null;    
+    var self = this;
+    var table = options.table;
+    var id = options.id;
+    var systemProperties = options.systemProperties;
+    var logger = options.logger;
+    var item = options.item;
+    var version = options.version;
+    var updateRowCount = 0;
+    var updateStatement = options.updateStatement;
+    var parameters = options.parameters;
+    var lastResult = null;
 
     logger.trace(logSource, 'Executing update', 'SQL: ' + updateStatement);
 
-    this._executeSql('UPDATE', updateStatement, parameters, logger, null, callback, function (error, results, more, rowCount) {
+    this._executeSql('UPDATE', updateStatement, parameters, logger, null, callback, (error, results, more, rowCount) => {
         if (error) {
             self._handleUpdateError(error, options, logger, callback);
             return;
@@ -410,7 +411,7 @@ Storage.prototype._executeSqlUpdate = function (options, callback) {
 // when update or delete statement affects 0 records this method checks to see if the version check failed or the record does not exist
 Storage.prototype._handleUpdateOrDeleteFailure = function (logger, table, item, callback, forOperation) {
 
-    this._readItemForError(logger, table, item.id, function (error, result) {
+    this._readItemForError(logger, table, item.id, (error, result) => {
         if (error || !result) {
             callback(error, result);
             return;
@@ -431,13 +432,13 @@ Storage.prototype._handleUpdateOrDeleteFailure = function (logger, table, item, 
 
 Storage.prototype._readItemForError = function (logger, table, id, callback, readErrorFormat) {
     var query = {
-        table: table,
-        id: id
+        table,
+        id
     };
 
     var queryOptions = { systemProperties: ['*'], includeDeleted: true };
 
-    this.query(query, logger, queryOptions, function (error, results) {
+    this.query(query, logger, queryOptions, (error, results) => {
         if (error) {
             logger.trace(logSource, _.sprintf(readErrorFormat, error.toString()));
             if (callback) {
@@ -458,19 +459,18 @@ Storage.prototype._readItemForError = function (logger, table, id, callback, rea
 };
 
 Storage.prototype._buildSqlUpdate = function (options, tableMetadata, systemProperties, callback) {
-    var table = options.table,
-        item = options.item,
-        logger = options.logger,
-        id = options.id;
-
-    var tableName = SqlHelpers.formatTableName(this.schemaName, table),
-                     setStatements = '',
-                     selectItemProperties = '',
-                     versionValue = '',
-                     hasStringId = tableMetadata.hasStringId,
-                     updateStmt = '',
-                     binaryColumns = tableMetadata.binaryColumns,
-                     parameters = [];
+    var table = options.table;
+    var item = options.item;
+    var logger = options.logger;
+    var id = options.id;
+    var tableName = SqlHelpers.formatTableName(this.schemaName, table);
+    var setStatements = '';
+    var selectItemProperties = '';
+    var versionValue = '';
+    var hasStringId = tableMetadata.hasStringId;
+    var updateStmt = '';
+    var binaryColumns = tableMetadata.binaryColumns;
+    var parameters = [];
 
     for (var prop in item) {
         var value = item[prop];
@@ -541,7 +541,7 @@ Storage.prototype._buildSqlUpdate = function (options, tableMetadata, systemProp
     // Add the SELECT clause if the id is a string
     if (hasStringId) {
         if (systemProperties) {
-            _.each(systemProperties, function (systemProperty) {
+            _.each(systemProperties, systemProperty => {
                 if (!versionValue || systemProperty !== 'version') {
                     if (selectItemProperties.length > 0) {
                         selectItemProperties += ', ';
@@ -554,12 +554,12 @@ Storage.prototype._buildSqlUpdate = function (options, tableMetadata, systemProp
             updateStmt += _.sprintf("; SELECT %s FROM %s WHERE [id] = ?", selectItemProperties, tableName);
             parameters.push(id);
         }
-    }    
+    }
 
     callback(null, updateStmt, parameters, versionValue);
 };
 
-Storage.prototype._trySetVersionParameter = function (version, parameters, callback) {
+Storage.prototype._trySetVersionParameter = (version, parameters, callback) => {
     var versionBuffer = null;
     try {
         versionBuffer = new Buffer(version, 'base64');
@@ -572,7 +572,7 @@ Storage.prototype._trySetVersionParameter = function (version, parameters, callb
     return true;
 };
 
-Storage.prototype._handleUpdateSuccess = function (updateRowCount, item, results, logger, callback) {
+Storage.prototype._handleUpdateSuccess = (updateRowCount, item, results, logger, callback) => {
     logger.trace(logSource, 'Update completed successfully. Rows affected: ' + updateRowCount);
 
     if (callback) {
@@ -606,7 +606,7 @@ Storage.prototype._handleUpdateError = function (error, options, logger, callbac
 
 Storage.prototype._retryUpdate = function (options, callback) {
     var self = this;
-    this._updateSchema(options.table, options.item, options.logger, function (error) {
+    this._updateSchema(options.table, options.item, options.logger, error => {
         if (error) {
             callback(error);
             return;
@@ -619,17 +619,17 @@ Storage.prototype._retryUpdate = function (options, callback) {
 };
 
 Storage.prototype._del = function (table, id, version, logger, callback) {
-    var parameters = [],
-        item = { id: id, __version: version },
-        tableName = SqlHelpers.formatTableName(this.schemaName, table),
-        deleteStmt = _.sprintf("DELETE FROM %s WHERE [id] = ?", tableName),
-        sqlEventName = 'DELETE',
-        forOperation = 'delete',
-        errorPrefix = 'Delete',
-        self = this;
+    var parameters = [];
+    var item = { id, __version: version };
+    var tableName = SqlHelpers.formatTableName(this.schemaName, table);
+    var deleteStmt = _.sprintf("DELETE FROM %s WHERE [id] = ?", tableName);
+    var sqlEventName = 'DELETE';
+    var forOperation = 'delete';
+    var errorPrefix = 'Delete';
+    var self = this;
     parameters.push(id);
 
-    this.getTableMetadata(table, logger, function (error, tableMetadata) {
+    this.getTableMetadata(table, logger, (error, tableMetadata) => {
         if (error) {
             callback(error);
             return;
@@ -653,7 +653,7 @@ Storage.prototype._del = function (table, id, version, logger, callback) {
         logger.trace(logSource, 'Executing delete', 'SQL: ' + deleteStmt);
         
         var deleteRowCount = 0;
-        self._executeSql(sqlEventName, deleteStmt, parameters, logger, null, callback, function (err, results, more, rowCount) {
+        self._executeSql(sqlEventName, deleteStmt, parameters, logger, null, callback, (err, results, more, rowCount) => {
             if (!err) {
                 // The row count should always be 1 since the delete is based on the primary key
                 // but this callback mught be invoked multiple times, and the rowCount might be set on
@@ -685,15 +685,15 @@ Storage.prototype._del = function (table, id, version, logger, callback) {
 };
 
 Storage.prototype._insert = function (options, callback) {
-    var table = options.table,
-        systemProperties = options.systemProperties,
-        logger = options.logger,
-        item = options.item,
-        insertStatement = options.insertStatement,
-        parameters = options.parameters,
-        self = this;
+    var table = options.table;
+    var systemProperties = options.systemProperties;
+    var logger = options.logger;
+    var item = options.item;
+    var insertStatement = options.insertStatement;
+    var parameters = options.parameters;
+    var self = this;
 
-    this._getTableMetadataAndSupportedSystemProperties(table, systemProperties, logger, function (error, systemProperties, tableMetadata) {
+    this._getTableMetadataAndSupportedSystemProperties(table, systemProperties, logger, (error, systemProperties, tableMetadata) => {
         if (error) {
             callback(error);
             return;
@@ -705,7 +705,7 @@ Storage.prototype._insert = function (options, callback) {
         }
         else {
             // we are building the insert statement for the first time
-            self._buildSqlInsert(table, item, tableMetadata, systemProperties, logger, function (error, insertStatement, parameters) {
+            self._buildSqlInsert(table, item, tableMetadata, systemProperties, logger, (error, insertStatement, parameters) => {
                 if (error) {
                     callback(error);
                     return;
@@ -722,15 +722,15 @@ Storage.prototype._insert = function (options, callback) {
 };
 
 Storage.prototype._executeSqlInsert = function (options, callback) {
-    var self = this,
-        logger = options.logger,
-        item = options.item,
-        insertStatement = options.insertStatement,
-        parameters = options.parameters;
+    var self = this;
+    var logger = options.logger;
+    var item = options.item;
+    var insertStatement = options.insertStatement;
+    var parameters = options.parameters;
 
     logger.trace(logSource, 'Executing insert', 'SQL: ' + insertStatement);
 
-    this._executeSql('INSERT', insertStatement, parameters, logger, null, callback, function (error, results, more) {
+    this._executeSql('INSERT', insertStatement, parameters, logger, null, callback, (error, results, more) => {
         if (error) {            
             self._handleInsertError(error, options, logger, callback);
             return;
@@ -743,16 +743,16 @@ Storage.prototype._executeSqlInsert = function (options, callback) {
 };
 
 Storage.prototype._buildSqlInsert = function (table, item, tableMetadata, systemProperties, logger, callback) {
-    var parameters = [],
-        hasStringId = tableMetadata.hasStringId,
-        binaryColumns = tableMetadata.binaryColumns,
-        tableName = SqlHelpers.formatTableName(this.schemaName, table),
-        self = this,
-        invalidIdError = null,
-        columnNames = '',
-        valueParams = '';
+    var parameters = [];
+    var hasStringId = tableMetadata.hasStringId;
+    var binaryColumns = tableMetadata.binaryColumns;
+    var tableName = SqlHelpers.formatTableName(this.schemaName, table);
+    var self = this;
+    var invalidIdError = null;
+    var columnNames = '';
+    var valueParams = '';
 
-    _.each(item, function (value, prop) {
+    _.each(item, (value, prop) => {
         if (!invalidIdError) {
             // validate the property
             try {
@@ -826,7 +826,7 @@ Storage.prototype._buildSqlInsert = function (table, item, tableMetadata, system
     if (hasStringId) {
         var selectItemProperties = '[appTable].[id] AS [id]';
         if (systemProperties) {
-            systemProperties.forEach(function (systemProperty) {
+            systemProperties.forEach(systemProperty => {
                 selectItemProperties += _.sprintf(', [appTable].[__%1$s] AS [__%1$s]', systemProperty);
             });
         }
@@ -840,7 +840,7 @@ Storage.prototype._buildSqlInsert = function (table, item, tableMetadata, system
     callback(null, insertStmt, parameters);
 };
 
-Storage.prototype._handleInsertSuccess = function (item, results, logger, callback) {
+Storage.prototype._handleInsertSuccess = (item, results, logger, callback) => {
     logger.trace(logSource, 'Insert completed successfully.');
 
     if (callback) {
@@ -878,7 +878,7 @@ Storage.prototype._retryInsert = function (options, callback) {
     // this of course assumes homogenous arrays
     var item = core.isArray(options.item) ? options.item[0] : options.item;
 
-    this._updateSchema(options.table, item, options.logger, function (err) {
+    this._updateSchema(options.table, item, options.logger, err => {
         if (!err) {
             // the schema update succeeded, so retry the insert
             options.retry = false;
@@ -893,7 +893,7 @@ Storage.prototype._retryInsert = function (options, callback) {
 Storage.prototype._query = function (query, logger, callback) {
     // ensure only supported system properties are being requested
     var self = this;
-    this._getTableMetadataAndSupportedSystemProperties(query.table, query.systemProperties, logger, function (error, systemProperties, tableMetadata) {
+    this._getTableMetadataAndSupportedSystemProperties(query.table, query.systemProperties, logger, (error, systemProperties, tableMetadata) => {
         if (error) {
             callback(error);
             return;
@@ -901,7 +901,7 @@ Storage.prototype._query = function (query, logger, callback) {
 
         query.systemProperties = systemProperties;
         
-        self._buildSqlQuery(query, tableMetadata, function (error, sqlStatement, parameters) {
+        self._buildSqlQuery(query, tableMetadata, (error, sqlStatement, parameters) => {
             if (error) {
                 callback(error);
                 return;
@@ -910,7 +910,7 @@ Storage.prototype._query = function (query, logger, callback) {
             logger.trace(logSource, 'Executing query', 'SQL: ' + sqlStatement);
 
             var allResults = [];
-            self._executeSql('SELECT', sqlStatement, parameters, logger, null, callback, function (error, results, more) {
+            self._executeSql('SELECT', sqlStatement, parameters, logger, null, callback, (error, results, more) => {
                 if (error) {
                     self._handleQueryError(query, error, logger, callback);
                 }
@@ -939,7 +939,7 @@ Storage.prototype._buildSqlQuery = function (query, tableMetadata, callback) {
 
     // build the parameter values array
     var parameters = [];
-    _.each(formatter.parameters, function (parameter) {
+    _.each(formatter.parameters, parameter => {
         parameters.push(parameter.value);
     });
 
@@ -966,11 +966,11 @@ Storage.prototype._handleQueryError = function (query, error, logger, callback) 
     }
 };
 
-Storage.prototype._getSystemPropertiesToDeleteFromQueryResults = function (query, tableMetadata) {
+Storage.prototype._getSystemPropertiesToDeleteFromQueryResults = (query, tableMetadata) => {
     // get a normalized (trimmed, all lowercase) list of the select properties
     var selectedProperties = [];
     if (query.select) {
-        query.select.split(',').forEach(function (selectedProperty) {
+        query.select.split(',').forEach(selectedProperty => {
             selectedProperty = selectedProperty.trim();
             if (selectedProperty.length > 0) {
                 selectedProperty = selectedProperty.toLowerCase();
@@ -980,7 +980,7 @@ Storage.prototype._getSystemPropertiesToDeleteFromQueryResults = function (query
     }
 
     var systemPropertiesToDelete = [];
-    tableMetadata.systemProperties.forEach(function (systemProperty) {
+    tableMetadata.systemProperties.forEach(systemProperty => {
         // don't delete any requested system properties
         if (!_.contains(query.systemProperties, systemProperty)) {
             var columnName = core.systemPropertyToColumnName(systemProperty.toLowerCase());
@@ -1009,14 +1009,14 @@ Storage.prototype._handleQuerySuccess = function (query, results, tableMetadata,
         // iterate through the results to remove row numbers or system properties
         // that were not requested
         if (pagedQuery || systemPropertiesToDelete.length > 0) {
-            _.each(queryResult, function (result) {
+            _.each(queryResult, result => {
                 // delete the row numbers if the query was paged
                 if (pagedQuery) {
                     delete result.ROW_NUMBER;
                 }
 
                 // delete the system property if it wasn't requested
-                _.each(_.keys(result), function (property) {
+                _.each(_.keys(result), property => {
                     if (_.contains(systemPropertiesToDelete, property.toLowerCase())) {
                         delete result[property];
                     }
@@ -1040,7 +1040,7 @@ Storage.prototype._handleQuerySuccess = function (query, results, tableMetadata,
 };
 
 // Intended to only be called for unhandled errors that have been caught
-Storage.prototype._handleSystemError = function (error, logger, callback) {
+Storage.prototype._handleSystemError = (error, logger, callback) => {
     if (core.isRuntimeError(error)) {
         logger.error(logSource, error);
     }
@@ -1054,7 +1054,7 @@ Storage.prototype._handleSystemError = function (error, logger, callback) {
 };
 
 Storage.prototype._validateId = function (table, id, logger, callback) {
-    this.getTableMetadata(table, logger, function (error, tableMetadata) {
+    this.getTableMetadata(table, logger, (error, tableMetadata) => {
         var idType = tableMetadata.idType;
         error = null;
         if (!id ||
@@ -1074,7 +1074,7 @@ Storage.prototype._validateId = function (table, id, logger, callback) {
 // }
 Storage.prototype.executeSql = function (sqlEventName, sqlStmt, parameters, logger, options, callback) {
     try {
-        this._executeSql(sqlEventName, sqlStmt, parameters, logger, options, function (err) {
+        this._executeSql(sqlEventName, sqlStmt, parameters, logger, options, err => {
             callback(err);
         }, callback);
     }
@@ -1088,16 +1088,16 @@ Storage.prototype.executeSql = function (sqlEventName, sqlStmt, parameters, logg
 Storage.prototype._executeSql = function (sqlEventName, sqlStmt, parameters, logger, options, callback, sqlCallback) {
     options = options || {};
 
-    var self = this,
-        rowCount,
-        retryCount = 0,
-        disableUserLog = options.disableUserLog || false;
+    var self = this;
+    var rowCount;
+    var retryCount = 0;
+    var disableUserLog = options.disableUserLog || false;
 
     // to facilitate retries, define a function that will actually execute the sql
     function executeSql() {
         try {
             var event = self.metrics.startEvent('sql.command.' + sqlEventName);
-            var stmt = self.sql.query(self.connection, sqlStmt, parameters, function (err, results, more) {
+            var stmt = self.sql.query(self.connection, sqlStmt, parameters, (err, results, more) => {
                 self.metrics.endEvent(event);
 
                 if (err) {
@@ -1142,7 +1142,7 @@ Storage.prototype._executeSql = function (sqlEventName, sqlStmt, parameters, log
             });
 
             if (stmt) {
-                stmt.on('rowcount', function (result) {
+                stmt.on('rowcount', result => {
                     rowCount = result;
                 });
             }

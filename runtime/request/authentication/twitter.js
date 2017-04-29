@@ -12,13 +12,14 @@
 // An Example of this flow can be found at:
 // https://gist.github.com/555607
 
-var core = require('../../core'),
-    jsonWebToken = require('../../jsonwebtoken'),
-    OAuth = require('oauth').OAuth,
-    LoginHandler = require('../loginhandler'),
-    Encryptor = require('../../encryptor'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var core = require('../../core');
+
+var jsonWebToken = require('../../jsonwebtoken');
+var OAuth = require('oauth').OAuth;
+var LoginHandler = require('../loginhandler');
+var Encryptor = require('../../encryptor');
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
@@ -38,7 +39,7 @@ TwitterLoginHandler.prototype.oAuthStateNotSupported = true;
 // is important.  This ensures that the LoginHandler.js will clean up this cookie for us.
 TwitterLoginHandler.RequestTokenCookieName = 'wams_rt';
 
-TwitterLoginHandler.prototype.isNewServerFlowRequest = function (request) {
+TwitterLoginHandler.prototype.isNewServerFlowRequest = request => {
     var isNewFlow = true;
 
     // If the query includes an 'oauth_verifier' parameter then this is the 
@@ -57,7 +58,7 @@ TwitterLoginHandler.prototype.getNewServerFlowResponseHeaders = function (reques
                                   consumerSecret,
                                   currentUri);
 
-    oauth.getOAuthRequestToken(function (error, requestToken, requestTokenSecret, results) {
+    oauth.getOAuthRequestToken((error, requestToken, requestTokenSecret, results) => {
 
         if (error) {
             error = new Error('Unable to obtain OAuth request token from Twitter.');
@@ -84,7 +85,7 @@ TwitterLoginHandler.prototype.getNewServerFlowResponseHeaders = function (reques
     });
 };
 
-TwitterLoginHandler.prototype.getProviderTokenFromClientFlowRequest = function (request, callback) {
+TwitterLoginHandler.prototype.getProviderTokenFromClientFlowRequest = (request, callback) => {
     var error = new core.MobileServiceError('POST of Twitter token is not supported.', core.ErrorCodes.MethodNotAllowed);
     callback(error, null);
 };
@@ -138,7 +139,7 @@ TwitterLoginHandler.prototype.getProviderTokenFromServerFlowRequest = function (
     oauth.getOAuthAccessToken(requestToken.rt,
                               requestToken.rts,
                               request.query.oauth_verifier,
-                              function (error, accessToken, accessTokenSecret, results) {
+                              (error, accessToken, accessTokenSecret, results) => {
                                   var providerToken = null;
 
                                   if (error) {
@@ -148,9 +149,9 @@ TwitterLoginHandler.prototype.getProviderTokenFromServerFlowRequest = function (
                                   // Create a 'providerToken' out of the accessToken, accessTokenSecret and results       
                                   if (!error) {
                                       providerToken = {
-                                          accessToken: accessToken,
-                                          accessTokenSecret: accessTokenSecret,
-                                          results: results
+                                          accessToken,
+                                          accessTokenSecret,
+                                          results
                                       };
                                   }
 
@@ -158,7 +159,7 @@ TwitterLoginHandler.prototype.getProviderTokenFromServerFlowRequest = function (
                               });
 };
 
-TwitterLoginHandler.prototype.getAuthorizationDetailsFromProviderToken = function (request, providerToken, callback, options) {
+TwitterLoginHandler.prototype.getAuthorizationDetailsFromProviderToken = (request, providerToken, callback, options) => {
 
     var error = null;
     var authorizationDetails = null;
@@ -170,7 +171,7 @@ TwitterLoginHandler.prototype.getAuthorizationDetailsFromProviderToken = functio
     else {
         var providerId = providerToken.results.user_id;
         authorizationDetails = {
-            providerId: providerId,
+            providerId,
             claims: {
                 // name: providerToken.results.name
             },

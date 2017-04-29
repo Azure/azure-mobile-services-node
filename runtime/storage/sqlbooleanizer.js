@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-(function (global) {
+((global => {
 
     var core = require('../core');
 
@@ -13,7 +13,7 @@
 
     var instanceMembers = {
 
-        visitUnary: function (expr) {
+        visitUnary(expr) {
             var operand = this.visit(expr.operand);
 
             if (operand && expr.expressionType == ExpressionType.Not) {
@@ -29,7 +29,7 @@
             return expr;
         },
 
-        visitBinary: function (expr) {
+        visitBinary(expr) {
             var left = null;
             var right = null;
 
@@ -128,7 +128,7 @@
 
     SqlBooleanizer = core.deriveClass(ExpressionVisitor, null, instanceMembers);
 
-    SqlBooleanizer.booleanize = function (expr) {
+    SqlBooleanizer.booleanize = expr => {
         var booleanizer = new SqlBooleanizer();
 
         expr = booleanizer.visit(expr);
@@ -137,4 +137,4 @@
         return expr;
     };
 
-})(typeof exports === "undefined" ? this : exports);
+}))(typeof exports === "undefined" ? this : exports);

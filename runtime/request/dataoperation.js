@@ -4,15 +4,16 @@
 //
 // This module is encapsulates the data operations invoked by scripts.
 
-var Query = require('../Zumo.Node').Query,
-    scriptErrors = require('../script/scripterror'),
-    StatusCodes = require('../statuscodes').StatusCodes,
-    resource = require('../resources'),
-    core = require('../core'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var Query = require('../Zumo.Node').Query;
 
- _.mixin(_str.exports());
+var scriptErrors = require('../script/scripterror');
+var StatusCodes = require('../statuscodes').StatusCodes;
+var resource = require('../resources');
+var core = require('../core');
+var _ = require('underscore');
+var _str = require('underscore.string');
+
+_.mixin(_str.exports());
 
 exports = module.exports = DataOperation;
 
@@ -41,7 +42,7 @@ DataOperation.prototype.read = function (table, query, options, responseCallback
         projection = query.getComponents().projection;
     }
 
-    var responseEvaluator = function (results) {
+    var responseEvaluator = results => {
         if (query.id !== undefined && results && (results.length === 0)) {
             return { error: self._handleItemNotFound(query.id) };
         } else { 
@@ -51,7 +52,7 @@ DataOperation.prototype.read = function (table, query, options, responseCallback
                 }
             }
 
-            return { results: results };
+            return { results };
         }
     };
 
@@ -71,7 +72,7 @@ DataOperation.prototype.read = function (table, query, options, responseCallback
 DataOperation.prototype.update = function (table, item, options, responseCallback, scriptCallback) {
     var self = this;
 
-    var responseEvaluator = function (rowCount) {
+    var responseEvaluator = rowCount => {
         if (rowCount === 0) {
             return { error: self._handleItemNotFound(item.id) };
         } else {
@@ -86,9 +87,9 @@ DataOperation.prototype.update = function (table, item, options, responseCallbac
 };
 
 DataOperation.prototype.del = function (table, itemOrId, options, responseCallback, scriptCallback) {
-    var self = this,
-        id = itemOrId,
-        version = null;
+    var self = this;
+    var id = itemOrId;
+    var version = null;
 
     if (core.isObject(itemOrId))
     {
@@ -96,7 +97,7 @@ DataOperation.prototype.del = function (table, itemOrId, options, responseCallba
         version = itemOrId.__version;
     }
 
-    var responseEvaluator = function (rowCount) {
+    var responseEvaluator = rowCount => {
         if (rowCount === 0) {
             return { error: self._handleItemNotFound(id) };
         } else {
@@ -131,7 +132,7 @@ function unwrapInlineCount(results) {
 
 DataOperation.prototype.createStorageCallback = function (table, successCode, responseCallback, scriptCallback, responseEvaluator) {
     var self = this;
-    return function (err, results) {
+    return (err, results) => {
         if (typeof responseEvaluator === 'function' && !err) {
             // Use the passed in response evaluator function to update the error
             // and results objects passed back from the storage layer.
@@ -173,7 +174,7 @@ DataOperation.prototype.createStorageCallback = function (table, successCode, re
 
 // if the specified query is a query builder, convert it back to our
 // query representation
-DataOperation.prototype.unwrapQueryBuilder = function (query) {
+DataOperation.prototype.unwrapQueryBuilder = query => {
     if (query && query.constructor === Query) {
         var unwrapped = {};
 
@@ -211,6 +212,4 @@ DataOperation.prototype.unwrapQueryBuilder = function (query) {
     return query;
 };
 
-DataOperation.prototype._handleItemNotFound = function (id) {
-    return new core.MobileServiceError(_.sprintf(resource.itemNotFound, id.toString()), core.ErrorCodes.ItemNotFound);
-};
+DataOperation.prototype._handleItemNotFound = id => new core.MobileServiceError(_.sprintf(resource.itemNotFound, id.toString()), core.ErrorCodes.ItemNotFound);

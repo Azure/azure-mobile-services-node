@@ -4,7 +4,7 @@
 //
 // Module containing 'enum' definitions for http status codes
 
-(function (exports) {
+((exports => {
 
     var core = require('./core');
 
@@ -32,4 +32,4 @@
 
     exports.StatusCodes = StatusCodes;
 
-})(typeof exports === 'undefined' ? (this.StatusCodes = {}) : exports);
+}))(typeof exports === 'undefined' ? (this.StatusCodes = {}) : exports);

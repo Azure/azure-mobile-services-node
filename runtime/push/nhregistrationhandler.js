@@ -8,13 +8,14 @@
 // GET http://myapp.azure-mobile.net/push/registrations?deviceId=<channelUri/deviceToken/gcmRegistrationId>&platform=<platform>
 // These endpoints facilitate the client's registrations for NotificationHubs
 
-var StatusCodes = require('../statuscodes').StatusCodes,
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    ApnsHandler = require('./nhregistrationhelpers/apns'),
-    GcmHandler = require('./nhregistrationhelpers/gcm'),
-    MpnsHandler = require('./nhregistrationhelpers/mpns'),
-    WnsHandler = require('./nhregistrationhelpers/wns');
+var StatusCodes = require('../statuscodes').StatusCodes;
+
+var _ = require('underscore');
+var _str = require('underscore.string');
+var ApnsHandler = require('./nhregistrationhelpers/apns');
+var GcmHandler = require('./nhregistrationhelpers/gcm');
+var MpnsHandler = require('./nhregistrationhelpers/mpns');
+var WnsHandler = require('./nhregistrationhelpers/wns');
 _.mixin(_str.exports());
 
 exports = module.exports = NhRegistrationHandler;
@@ -35,15 +36,15 @@ function NhRegistrationHandler(notificationHubService, extensionManager) {
 // POST http://myapp.azure-mobile.net/push/registrationsids
 // Success returns 201
 NhRegistrationHandler.prototype.handlePost = function (req) {
-    var context = req._context,
-        responseCallback = context.responseCallback,
-        headers,
-        logger = context.logger,
-        metrics = context.metrics,
-        metricName = 'registration.createId';
+    var context = req._context;
+    var responseCallback = context.responseCallback;
+    var headers;
+    var logger = context.logger;
+    var metrics = context.metrics;
+    var metricName = 'registration.createId';
 
     try {
-        this.notificationHubService.createRegistrationId(function (error, response) {
+        this.notificationHubService.createRegistrationId((error, response) => {
             try {
                 if (error) {
                     metrics.event(_.sprintf('%s.%s', metricName, 'error'));
@@ -90,16 +91,16 @@ NhRegistrationHandler.prototype.handlePost = function (req) {
 // }
 // Success returns 204
 NhRegistrationHandler.prototype.handlePut = function (req) {
-    var context = req._context,
-        requestBody = req.body,
-        responseCallback = context.responseCallback,
-        platform,
-        registration,
-        logger = context.logger,
-        metrics = context.metrics,
-        metricName = 'registration.update',
-        installationId = req.headers['x-zumo-installation-id'],
-        self = this;
+    var context = req._context;
+    var requestBody = req.body;
+    var responseCallback = context.responseCallback;
+    var platform;
+    var registration;
+    var logger = context.logger;
+    var metrics = context.metrics;
+    var metricName = 'registration.update';
+    var installationId = req.headers['x-zumo-installation-id'];
+    var self = this;
 
     if (!requestBody) {
         throw new core.MobileServiceError('Creating or updating registrations requires a body containing a push registration', core.ErrorCodes.BadInput);
@@ -118,7 +119,7 @@ NhRegistrationHandler.prototype.handlePut = function (req) {
             }
         }
 
-        this.extensionManager.runPushRegistrationScript(requestBody, req.user, function (scriptError) {
+        this.extensionManager.runPushRegistrationScript(requestBody, req.user, scriptError => {
             try {
                 if (scriptError) {
                     handleUserScriptError(logger, responseCallback, scriptError, 'Registration script failed with error');
@@ -129,7 +130,7 @@ NhRegistrationHandler.prototype.handlePut = function (req) {
 
                 registration.Tags = registration.Tags.join();
 
-                self.notificationHubService.createOrUpdateRegistration(registration, function (error) {
+                self.notificationHubService.createOrUpdateRegistration(registration, error => {
                     try {
                         if (error) {
                             metrics.event(_.sprintf('%s.%s', metricName, 'error'));
@@ -163,7 +164,7 @@ NhRegistrationHandler.prototype.handlePut = function (req) {
 // The first 2 parts of a inputRegistration for any service are:
 // 1. registrationId (required)
 // 2. tags (optional
-NhRegistrationHandler.prototype.transformInputToNhBaseRegistration = function (inputRegistration) {
+NhRegistrationHandler.prototype.transformInputToNhBaseRegistration = inputRegistration => {
     var registration = {};
 
     // The _ property on the registration is used by notificationHubService for storing various metadata such as the type of the registration object for SOAP
@@ -191,14 +192,14 @@ NhRegistrationHandler.prototype.transformInputToNhBaseRegistration = function (i
 // DELETE http://myapp.azure-mobile.net/push/registrations/<id>
 // Success returns 200
 NhRegistrationHandler.prototype.handleDelete = function (req) {
-    var context = req._context,
-        responseCallback = context.responseCallback,
-        logger = context.logger,
-        metrics = context.metrics,
-        metricName = 'registration.delete';
+    var context = req._context;
+    var responseCallback = context.responseCallback;
+    var logger = context.logger;
+    var metrics = context.metrics;
+    var metricName = 'registration.delete';
 
     try {
-        this.notificationHubService.deleteRegistration(context.parsedRequest.id, function (error) {
+        this.notificationHubService.deleteRegistration(context.parsedRequest.id, error => {
             try {
                 if (error) {
                     metrics.event(_.sprintf('%s.%s', metricName, 'error'));
@@ -225,13 +226,13 @@ NhRegistrationHandler.prototype.handleDelete = function (req) {
 // GET http://myapp.azure-mobile.net/push/registrations?deviceId=<channelUri/deviceToken/gcmRegistrationId>&platform=<platform>
 // Success returns 200
 NhRegistrationHandler.prototype.handleGet = function (req) {
-    var context = req._context,
-        platform = req.query.platform,
-        platformHandler,
-        logger = context.logger,
-        responseCallback = context.responseCallback,
-        metricName = _.sprintf('registration.list.%s', platform),
-        metrics = context.metrics;
+    var context = req._context;
+    var platform = req.query.platform;
+    var platformHandler;
+    var logger = context.logger;
+    var responseCallback = context.responseCallback;
+    var metricName = _.sprintf('registration.list.%s', platform);
+    var metrics = context.metrics;
 
     try {
         if (!req.query.deviceId) {
@@ -240,7 +241,7 @@ NhRegistrationHandler.prototype.handleGet = function (req) {
 
         platformHandler = this.getHandler(platform);
 
-        platformHandler.listRegistrations(req.query.deviceId, function (error, response) {
+        platformHandler.listRegistrations(req.query.deviceId, (error, response) => {
             try {
                 handleListRegistrationsResponse(req, error, response, platform, platformHandler);
             } catch (e) {
@@ -256,11 +257,11 @@ NhRegistrationHandler.prototype.handleGet = function (req) {
 
 // callback for converting the response for listing registrations
 function handleListRegistrationsResponse(req, error, response, platform, platformHandler) {
-    var context = req._context,
-        responseCallback = context.responseCallback,
-        logger = context.logger,
-        metrics = context.metrics,
-        metricName = _.sprintf('registration.list.%s', platform);
+    var context = req._context;
+    var responseCallback = context.responseCallback;
+    var logger = context.logger;
+    var metrics = context.metrics;
+    var metricName = _.sprintf('registration.list.%s', platform);
 
     if (error) {
         metrics.event(_.sprintf('%s.%s', metricName, 'error'));
@@ -291,7 +292,7 @@ NhRegistrationHandler.prototype.getHandler = function (platform) {
 // Converting a success response for listing registrations to output format
 function convertToOutputRegistrationArray(platformHandler, nhListResponse) {
     var registrations = [];
-    _.each(nhListResponse, function (regFromNh) { convertToOutputRegistration(platformHandler, regFromNh, registrations); });
+    _.each(nhListResponse, regFromNh => { convertToOutputRegistration(platformHandler, regFromNh, registrations); });
     return registrations;
 }
 

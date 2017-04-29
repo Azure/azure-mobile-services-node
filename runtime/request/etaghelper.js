@@ -4,12 +4,13 @@
 //
 // This module has helper functions for working with etags
 
-var resource = require('../resources'),
-    core = require('../core.js');
+var resource = require('../resources');
+
+var core = require('../core.js');
 
 ETagHelper = {};
 
-ETagHelper.doesIfNoneMatchHeaderMatchesEtag = function (ifNoneMatch, etag) {
+ETagHelper.doesIfNoneMatchHeaderMatchesEtag = (ifNoneMatch, etag) => {
     // an if-none-match header can be a '*' or a comma-seperated list
     // of etage values
     var doesMatch = false;
@@ -24,7 +25,7 @@ ETagHelper.doesIfNoneMatchHeaderMatchesEtag = function (ifNoneMatch, etag) {
 
             // check each etag in the if-none-match header against
             // the response etag
-            ifNoneMatch.split(",").forEach(function (ifNoneMatchValue) {
+            ifNoneMatch.split(",").forEach(ifNoneMatchValue => {
                 if (ifNoneMatchValue.trim() === etag) {
                     doesMatch = true;
                 }
@@ -35,7 +36,7 @@ ETagHelper.doesIfNoneMatchHeaderMatchesEtag = function (ifNoneMatch, etag) {
     return doesMatch;
 };
 
-ETagHelper.setVersionFromIfMatchHeader = function (request, item, tableMetadata, responseCallback) {
+ETagHelper.setVersionFromIfMatchHeader = (request, item, tableMetadata, responseCallback) => {
     // check for an if-match header and set the body version
     if (!tableMetadata.supportsConflict) {
         return true;
@@ -55,7 +56,7 @@ ETagHelper.setVersionFromIfMatchHeader = function (request, item, tableMetadata,
     return true;
 };
 
-ETagHelper.parseIfMatchHeader = function (request) {
+ETagHelper.parseIfMatchHeader = request => {
     var ifMatch = request.headers["if-match"];
     if (!ifMatch || ifMatch.trim() === '*') {
         return null;
@@ -64,7 +65,7 @@ ETagHelper.parseIfMatchHeader = function (request) {
     var etags = [];
     try {
         ifMatch.split(",")
-                .forEach(function (etag) {
+                .forEach(etag => {
                     etag = JSON.parse(etag.trim());
                     if (!core.isString(etag)) {
                         throw new core.MobileServiceError(resource.invalidIfMatchHeader, core.ErrorCodes.BadInput);

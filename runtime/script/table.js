@@ -6,20 +6,21 @@
 // user's server side scripts. A table object is returned when a user
 // runs tables.getTable passing in the name of a table.
 
-var DataOperation = require('../request/dataoperation'),
-    core = require('../core'),
-    scriptErrors = require('./scripterror'),
-    Query = require('../Zumo.Node').Query,
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var DataOperation = require('../request/dataoperation');
 
- _.mixin(_str.exports());
+var core = require('../core');
+var scriptErrors = require('./scripterror');
+var Query = require('../Zumo.Node').Query;
+var _ = require('underscore');
+var _str = require('underscore.string');
+
+_.mixin(_str.exports());
 
 exports = module.exports = Table;
 
 function Table(storage, table, source, logger, metrics, responseCallback) {
 
-    var validateItemForTableOperation = function (item, operation, mustHaveId) {
+    var validateItemForTableOperation = (item, operation, mustHaveId) => {
         if (!core.isObject(item)) {
             throw new core.MobileServiceError(_.sprintf("Operation '%s' on table '%s' failed. The parameter 'item' must be an object.", scriptErrors.normalizeOperationName(operation), table), core.ErrorCodes.ScriptError);
         }
@@ -28,7 +29,7 @@ function Table(storage, table, source, logger, metrics, responseCallback) {
         }
     };
 
-    var handleError = function (error, callback, callbackOptions) {
+    var handleError = (error, callback, callbackOptions) => {
         if (error.loggedToUser) {
             callback(error);
         } else if (!callbackOptions || !callbackOptions.error) {
@@ -42,11 +43,9 @@ function Table(storage, table, source, logger, metrics, responseCallback) {
         }
     };
 
-    this.getTableName = function () {
-        return table;
-    };
+    this.getTableName = () => table;
 
-    this.read = function (queryOrCallbackOptions, callbackOptions) {
+    this.read = (queryOrCallbackOptions, callbackOptions) => {
         var query = null;
         
         if (queryOrCallbackOptions && queryOrCallbackOptions.constructor == Query) {
@@ -64,31 +63,31 @@ function Table(storage, table, source, logger, metrics, responseCallback) {
         _executeTableOperation('read', table, query, callbackOptions);
     };
 
-    this.insert = function (item, callbackOptions) {
+    this.insert = (item, callbackOptions) => {
         validateItemForTableOperation(item, 'insert', false);
         _executeTableOperation('insert', table, item, callbackOptions);
     };
-    this.update = function (item, callbackOptions) {
+    this.update = (item, callbackOptions) => {
         validateItemForTableOperation(item, 'update', true);
         _executeTableOperation('update', table, item, callbackOptions);
     };
-    this.del = function (itemOrId, callbackOptions) {
+    this.del = (itemOrId, callbackOptions) => {
         if (core.isObject(itemOrId)) {
             validateItemForTableOperation(itemOrId, 'del', true);
         }
         _executeTableOperation('del', table, itemOrId, callbackOptions);
     };
 
-    this.lookup = function (id, callbackOptions) {
+    this.lookup = (id, callbackOptions) => {
         if (!id) {
             throw new core.MobileServiceError(_.sprintf("Operation 'lookup' on table '%s' failed. The id argument is invalid.", table), core.ErrorCodes.ScriptError);
         }
         
-        var query = { id: id };
+        var query = { id };
         var newCallbackOptions = _.clone(callbackOptions);
 
         if (callbackOptions && callbackOptions.success) {
-            newCallbackOptions.success = function (results) {
+            newCallbackOptions.success = results => {
                 callbackOptions.success(results[0]);
             };
         }
@@ -104,21 +103,21 @@ function Table(storage, table, source, logger, metrics, responseCallback) {
             throw new core.MobileServiceError(_.sprintf("Operation '%s' on table '%s' failed. Arguments to table operations cannot be null or undefined.", scriptErrors.normalizeOperationName(operationName), table), core.ErrorCodes.ScriptError);
         }
 
-        storage.getTableMetadata(table, logger, function (error, tableMetadata) {
-
+        storage.getTableMetadata(table, logger, (error, tableMetadata) => {
             if (error) {
                 handleError(error, responseCallback, callbackOptions);
                 return;
             }
-            
-            var systemProperties = [],
-                validateOptions = {
-                    supportsConflict: (operationName === 'update' || operationName === 'del') &&                                    
-                                      tableMetadata.supportsConflict,
 
-                    supportsIncludeDeleted: (operationName == 'read' &&
-                                            tableMetadata.supportsSoftDelete)
-                };
+            var systemProperties = [];
+
+            var validateOptions = {
+                supportsConflict: (operationName === 'update' || operationName === 'del') &&                                    
+                                  tableMetadata.supportsConflict,
+
+                supportsIncludeDeleted: (operationName == 'read' &&
+                                        tableMetadata.supportsSoftDelete)
+            };
 
             try {
                 // callback options aren't required for a table operation, but if specified, must
@@ -135,12 +134,12 @@ function Table(storage, table, source, logger, metrics, responseCallback) {
             }
 
             var includeDeleted = callbackOptions && callbackOptions.includeDeleted;
-            
+
             // Define the callback that the data operation will call back
             // when it completes. We'll receive the error/result data from the
             // runtime, which we then dispatch to any callback functions
             // provided by the script.
-            var scriptCallback = function (error, results) {
+            var scriptCallback = (error, results) => {
                 if (callbackOptions) {
                     if (!error) {
                         if (callbackOptions.success) {
@@ -160,7 +159,7 @@ function Table(storage, table, source, logger, metrics, responseCallback) {
             };
 
             // Take over the existing response callback to facilitate with error handling
-            responseCallback = _.wrap(responseCallback, function (oldCallback, error) {
+            responseCallback = _.wrap(responseCallback, (oldCallback, error) => {
                 // If there is not an error or there is an error and callbackOptions.error exists, don't do anything because it has already been handled by the user.
                 if (error) {
                     handleError(error, oldCallback, callbackOptions);
@@ -168,7 +167,7 @@ function Table(storage, table, source, logger, metrics, responseCallback) {
             });
 
             var dataOperation = new DataOperation(storage, source, logger);
-            var options = { systemProperties: systemProperties, includeDeleted: includeDeleted };
+            var options = { systemProperties, includeDeleted };
             dataOperation[operationName](table, operationArg, options, responseCallback, scriptCallback);
         });
     }
@@ -179,18 +178,18 @@ function Table(storage, table, source, logger, metrics, responseCallback) {
 // forward on directly to a new Query instance.
 var queryOperators = ['where', 'select', 'orderBy', 'orderByDescending', 'skip', 'take', 'includeTotalCount'];
 
-var copyOperator = function (operator) {
-    Table.prototype[operator] = function () {
+var copyOperator = operator => {
+    Table.prototype[operator] = function(...args) {
         var self = this;
 
         // Creates a new query.
         var query = new Query(self.getTableName());
 
-        query.read = function (callbackOptions) {
+        query.read = callbackOptions => {
             self.read(query, callbackOptions);
         };
 
-        return query[operator].apply(query, arguments);
+        return query[operator](...args);
     };
 };
 var i = 0;

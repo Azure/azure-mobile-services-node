@@ -4,12 +4,13 @@
 //
 // Adapts the sqlserver module for direct use from ZUMO scripts
 
-var core = require('../core'),
-    sqlserver = require('sqlserver'),
-    scriptErrors = require('./scripterror'),
-    util = require('util');
+var core = require('../core');
 
-module.exports.create = function(connectionString, logger, metrics, source, responseCallback) {
+var sqlserver = require('sqlserver');
+var scriptErrors = require('./scripterror');
+var util = require('util');
+
+module.exports.create = (connectionString, logger, metrics, source, responseCallback) => {
     var adapter = new SqlAdapter(connectionString, logger, metrics, source, responseCallback);
     return adapter.createMSSQLModule();
 };
@@ -29,28 +30,22 @@ SqlAdapter.prototype.createMSSQLModule = function () {
 
     self.logger.trace(logSource, 'Creating MSSQL Module', self.getTraceDetails());
     return {
-        open: function (callbackOptions) {
+        open(callbackOptions) {
             var traceDetails = self.getTraceDetails("open");
             var args = self.prepareArgs('open', null, callbackOptions, traceDetails, "Unable to open connection: ");
-            self.executeSqlServerFunction(traceDetails, function () {
-                return sqlserver.open(self.connectionString, args.callback);
-            });
+            self.executeSqlServerFunction(traceDetails, () => sqlserver.open(self.connectionString, args.callback));
         },
-        query: function (query, paramsOrCallback, callbackOptions) {
+        query(query, paramsOrCallback, callbackOptions) {
             var traceDetails = self.getTraceDetails("query", query);
             var args = self.prepareArgs('query', paramsOrCallback, callbackOptions, traceDetails, "Error occurred executing query: ");
 
-            self.executeSqlServerFunction(traceDetails, function () {
-                return sqlserver.query(self.connectionString, query, args.params, args.callback);
-            });
+            self.executeSqlServerFunction(traceDetails, () => sqlserver.query(self.connectionString, query, args.params, args.callback));
         },
-        queryRaw: function (query, paramsOrCallback, callbackOptions) {
+        queryRaw(query, paramsOrCallback, callbackOptions) {
             var traceDetails = self.getTraceDetails("queryRaw", query);
             var args = self.prepareArgs('queryRaw', paramsOrCallback, callbackOptions, traceDetails, "Error occurred executing query: ");
 
-            self.executeSqlServerFunction(traceDetails, function () {
-                return sqlserver.queryRaw(self.connectionString, query, args.params, args.callback);
-            });
+            self.executeSqlServerFunction(traceDetails, () => sqlserver.queryRaw(self.connectionString, query, args.params, args.callback));
         }
     };
 };
@@ -92,7 +87,7 @@ SqlAdapter.prototype.prepareArgs = function (method, paramsOrCallbackOptions, ca
         params = [params];
     }
 
-    return { params: params, callback: this.constructCallback(callbackOptions, traceDetails, errormsg) };
+    return { params, callback: this.constructCallback(callbackOptions, traceDetails, errormsg) };
 };
 
 SqlAdapter.prototype.executeSqlServerFunction = function (traceDetails, sqlServerFunction) {
@@ -118,7 +113,7 @@ SqlAdapter.prototype.constructCallback = function (callbackOptions, traceDetails
             traceDetails.error = err.toString();
             if (callbackOptions && callbackOptions.error) {
                 self.logger.trace(logSource, 'Call into MSSQL Module failed - Calling user error callback', traceDetails);
-                self.executeUserCallback(traceDetails, function () {
+                self.executeUserCallback(traceDetails, () => {
                     callbackOptions.error(scriptErrors.prepareUserError(err));
                 });
             } else {
@@ -131,7 +126,7 @@ SqlAdapter.prototype.constructCallback = function (callbackOptions, traceDetails
                 // Skip the error argument, pass the rest.
                 var args = Array.prototype.slice.call(arguments).slice(1);
 
-                self.executeUserCallback(traceDetails, function () {
+                self.executeUserCallback(traceDetails, () => {
                     callbackOptions.success.apply(null, args);
                 });
             }
@@ -156,7 +151,7 @@ SqlAdapter.prototype.getTraceDetails = function (sqlFunction, query) {
     // for example connection string, etc.
     var traceDetails = {
         source: this.source,
-        sqlFunction: sqlFunction
+        sqlFunction
     };
 
     if (query) {

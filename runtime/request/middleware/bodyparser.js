@@ -8,7 +8,7 @@
 // by the default parser.
 
 exports = module.exports = function bodyParser() {
-    return function (req, res, next) {
+    return (req, res, next) => {
         if (req._body) {
             // this flag is set by the default Express body parser
             // to indicate the body has already been parsed
@@ -21,10 +21,10 @@ exports = module.exports = function bodyParser() {
 
         var buf = '';
         req.setEncoding('utf8');
-        req.on('data', function (chunk) {
+        req.on('data', chunk => {
             buf += chunk;
         });
-        req.on('end', function () {
+        req.on('end', () => {
             try {
                 // currently this parser just takes the raw string value
                 // as the body

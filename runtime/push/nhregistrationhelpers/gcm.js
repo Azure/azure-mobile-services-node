@@ -54,13 +54,11 @@ GcmHandler.prototype.listRegistrations = function (deviceId, callback) {
 };
 
 // Provides the specific property to snag the unique registration Id from
-GcmHandler.prototype.getDeviceIdFromNhRegistration = function (regFromNh) {
-    return regFromNh.GcmRegistrationId;
-};
+GcmHandler.prototype.getDeviceIdFromNhRegistration = regFromNh => regFromNh.GcmRegistrationId;
 
 // Converts any optional template members from Service Bus for this notifcation service into members of registration object
 // for transfer to the client
 // regFromNh, registration are default params, but are unused
 // Gcm currently has no optimal template properties
-GcmHandler.prototype.convertOptionalTemplatePropsToOutputRegistration = function () {
+GcmHandler.prototype.convertOptionalTemplatePropsToOutputRegistration = () => {
 };

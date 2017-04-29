@@ -5,19 +5,20 @@
 // This module is responsible for execution of a script including exposing capabilities to scripts via globals
 // and any arguments that need to be passed to user-defined functions.
 
-var vm = require('vm'),
-    core = require('../core'),
-    util = require('util'),
-    scriptErrors = require('./scripterror'),
-    StatusCodes = require('../statuscodes').StatusCodes,
-    sqlAdapter = require('./sqladapter'),
-    tripwire = require('tripwire'),
-    Table = require('./table'),
-    ScriptLoader = require('./scriptloader'),
-    path = require('path'),
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    config = require('mobileservice-config');
+var vm = require('vm');
+
+var core = require('../core');
+var util = require('util');
+var scriptErrors = require('./scripterror');
+var StatusCodes = require('../statuscodes').StatusCodes;
+var sqlAdapter = require('./sqladapter');
+var tripwire = require('tripwire');
+var Table = require('./table');
+var ScriptLoader = require('./scriptloader');
+var path = require('path');
+var _ = require('underscore');
+var _str = require('underscore.string');
+var config = require('mobileservice-config');
 
 _.mixin(_str.exports());
 
@@ -54,8 +55,9 @@ ScriptManager.prototype.getTablePermission = function (tableName, operation) {
     }
 
     // otherwise default to the datamodel permissions
-    var dataModel = this.getDataModel(),
-        table = dataModel.getTable(tableName);
+    var dataModel = this.getDataModel();
+
+    var table = dataModel.getTable(tableName);
 
     if (table && table.permissions) {
         permission = table.permissions[operation];
@@ -87,7 +89,7 @@ ScriptManager.prototype.hasTableScript = function (table, operation) {
     return this.scriptLoader.getTableScript(table, scriptErrors.normalizeOperationName(operation)) !== null;
 };
 
-ScriptManager.prototype.getLogSourceName = function (table, operation) {
+ScriptManager.prototype.getLogSourceName = (table, operation) => {
     var normalizedOperationName = scriptErrors.normalizeOperationName(operation);
     var source = scriptErrors.getTableScriptSource(table, normalizedOperationName);
     return source;
@@ -108,7 +110,7 @@ ScriptManager.prototype.runFeedbackScript = function (interval) {
     var self = this;
 
     // Set the feedback script to run every interval ms
-    this.feedbackInterval = setInterval(function () {
+    this.feedbackInterval = setInterval(() => {
         self._runFeedbackScript();
     }, interval);
 
@@ -155,13 +157,13 @@ ScriptManager.prototype._run = function (script, scriptFileName, scriptDirectory
     // create or less often used is defined below as create on-demand property getters.
     var sandbox = {
         _args: scriptArgs,
-        Buffer: Buffer,
-        setTimeout: setTimeout,
-        clearTimeout: clearTimeout,
-        setInterval: setInterval,
-        clearInterval: clearInterval,
+        Buffer,
+        setTimeout,
+        clearTimeout,
+        setInterval,
+        clearInterval,
         statusCodes: StatusCodes,
-        process: process
+        process
     };
     sandbox.require = this._createRequire(scriptDirectoryName);
 
@@ -181,7 +183,7 @@ ScriptManager.prototype._run = function (script, scriptFileName, scriptDirectory
 
     // Go async before executing the user script to create a new call stack; this ensures
     // we don't have to check for and re-throw tripwire exceptions.
-    process.nextTick(function () {
+    process.nextTick(() => {
         try {
             // first run the user script to define the operation in the context
             var context = vm.createContext(sandbox);
@@ -223,10 +225,10 @@ ScriptManager.prototype._createServicesForSandbox = function (services, source, 
     // if no response callback has been specified, use an empty function
     // to ignore any responses. For example, cron and apnsfeedback scripts
     // don't pass a response callback.
-    var responseCallback = options && options.responseCallback ? options.responseCallback : function () { };
+    var responseCallback = options && options.responseCallback ? options.responseCallback : () => { };
 
     services.tables = {
-        getTable: function (tableName) {
+        getTable(tableName) {
             if (!core.isString(tableName)) {
                 throw new core.MobileServiceError("Table name cannot be null or empty.", core.ErrorCodes.ScriptError);
             }
@@ -237,9 +239,7 @@ ScriptManager.prototype._createServicesForSandbox = function (services, source, 
 
     // expose the current table name programmatically in server scripts as tables.current.
     if (options.currentTableName !== undefined) {
-        core.createLazyProperty(services.tables, 'current', function () {
-            return new Table(self.storage, options.currentTableName, source, logger, self.metrics, responseCallback);
-        });
+        core.createLazyProperty(services.tables, 'current', () => new Table(self.storage, options.currentTableName, source, logger, self.metrics, responseCallback));
     }
 
     services.console = this._createConsoleObject(source, logger);
@@ -247,15 +247,13 @@ ScriptManager.prototype._createServicesForSandbox = function (services, source, 
     services.push = this.pushAdapter.createPushForScripts(source, logger, this.metrics, responseCallback);
 
     // define lazy property for mssql wrapper
-    core.createLazyProperty(services, 'mssql', function () {
-        return sqlAdapter.create(self.storage.connection, logger, self.metrics, source, responseCallback);
-    });
+    core.createLazyProperty(services, 'mssql', () => sqlAdapter.create(self.storage.connection, logger, self.metrics, source, responseCallback));
 };
 
 ScriptManager.prototype._createRequire = function (scriptDirectoryName) {
     var self = this;
 
-    return function (moduleOrPath) {
+    return moduleOrPath => {
         var fxUtil;
         try {
             // we need to use fxUtil.require to simulate origin of script to be inside scripts directory

@@ -6,13 +6,14 @@
 // login modules, it implements a very specific interface that is documented in
 // ../loginhandler.js.
 
-var core = require('../../core'),
-    jsonWebToken = require('../../jsonwebtoken'),
-    LoginHandler = require('../loginhandler'),
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    GoogleCert = require('./googlecert'),
-    certCacheHelper = require('./certcachehelper');
+var core = require('../../core');
+
+var jsonWebToken = require('../../jsonwebtoken');
+var LoginHandler = require('../loginhandler');
+var _ = require('underscore');
+var _str = require('underscore.string');
+var GoogleCert = require('./googlecert');
+var certCacheHelper = require('./certcachehelper');
 
 _.mixin(_str.exports());
 
@@ -25,7 +26,7 @@ function GoogleLoginHandler(authenticationCredentials, logger) {
     this.logger = logger;
 }
 
-GoogleLoginHandler.prototype.isNewServerFlowRequest = function (request) {
+GoogleLoginHandler.prototype.isNewServerFlowRequest = request => {
     var isNewFlow = true;
 
     // If the query includes either a 'code' parameter or an 'error' parameter
@@ -52,11 +53,11 @@ GoogleLoginHandler.prototype.getNewServerFlowResponseHeaders = function (request
 };
 
 GoogleLoginHandler.prototype.getProviderTokenFromClientFlowRequest = function (request, callback) {
-    var body = request.body,
-        self = this;
+    var body = request.body;
+    var self = this;
 
     if (_.isObject(body) && _.isString(body.id_token)) {
-        certCacheHelper.validateToken(this.googleCert, body.id_token, function (error, validatedIdToken) {
+        certCacheHelper.validateToken(this.googleCert, body.id_token, (error, validatedIdToken) => {
             if (error) {
                 callback(error);
                 return;
@@ -102,16 +103,17 @@ GoogleLoginHandler.prototype.getProviderTokenFromServerFlowRequest = function (r
 };
 
 GoogleLoginHandler.prototype.getAuthorizationDetailsFromProviderToken = function (request, providerInformation, callback, options) {
-    var self = this,
-        providerId = providerInformation.id_token.claims.sub,
-        authorizationDetails = {
-            providerId: providerId,
-            claims: {
-            },
-            secrets: {
-            }
-        };
-    
+    var self = this;
+    var providerId = providerInformation.id_token.claims.sub;
+
+    var authorizationDetails = {
+        providerId,
+        claims: {
+        },
+        secrets: {
+        }
+    };
+
     var accessToken = providerInformation.access_token;
     if (accessToken) {
         // in the client flow, we won't have an access_token
@@ -119,15 +121,16 @@ GoogleLoginHandler.prototype.getAuthorizationDetailsFromProviderToken = function
     }
 
     if (accessToken && options.usersEnabled) {
-        var googleUri = '/oauth2/v3/userinfo?access_token=' + encodeURIComponent(accessToken),
-            graphApi = {
-                host: 'www.googleapis.com',
-                port: 443,
-                path: googleUri,
-                method: 'GET'
-            };
+        var googleUri = '/oauth2/v3/userinfo?access_token=' + encodeURIComponent(accessToken);
 
-        LoginHandler.makeSecureRequest(graphApi, null, function (error, res, body) {
+        var graphApi = {
+            host: 'www.googleapis.com',
+            port: 443,
+            path: googleUri,
+            method: 'GET'
+        };
+
+        LoginHandler.makeSecureRequest(graphApi, null, (error, res, body) => {
             if (error || res.statusCode !== 200) {
                 callback(new Error('Failed to retrieve user info for google due to error: ' + error));
             }
@@ -175,10 +178,11 @@ GoogleLoginHandler.prototype._getProviderToken = function (code, currentUri, idT
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
             }
-        },
-        self = this;
+        };
 
-    LoginHandler.makeSecureRequest(options, authParams, function (error, res, authBody) {
+    var self = this;
+
+    LoginHandler.makeSecureRequest(options, authParams, (error, res, authBody) => {
         // Ensure that the request was successful
         if (!error && res.statusCode !== 200) {
             error = new Error('The Google API request failed with HTTP status code ' + res.statusCode);
@@ -191,11 +195,12 @@ GoogleLoginHandler.prototype._getProviderToken = function (code, currentUri, idT
 
         // Response should contain accessToken and id_token. (If we change initial redirect 
         // to offline, it would also contain refresh_token)
-        var parsedResponse = JSON.parse(authBody),
-            idToken = parsedResponse.id_token;
+        var parsedResponse = JSON.parse(authBody);
+
+        var idToken = parsedResponse.id_token;
 
         // Ensure the id_token returned is valid and stash the parsed response to re-use within getAuthorizationDetailsFromProviderToken
-        certCacheHelper.validateToken(self.googleCert, idToken, function (innerError, responseIdToken) {
+        certCacheHelper.validateToken(self.googleCert, idToken, (innerError, responseIdToken) => {
             if (innerError) {
                 callback(innerError);
                 return;

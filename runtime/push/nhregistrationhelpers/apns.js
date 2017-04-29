@@ -59,13 +59,11 @@ ApnsHandler.prototype.listRegistrations = function (deviceId, callback) {
 };
 
 // Provides the specific property to snag the unique registration Id from
-ApnsHandler.prototype.getDeviceIdFromNhRegistration = function (regFromNh) {
-    return regFromNh.DeviceToken;
-};
+ApnsHandler.prototype.getDeviceIdFromNhRegistration = regFromNh => regFromNh.DeviceToken;
 
 // Converts any optional template members from Service Bus for this notifcation service into members of registration object
 // for transfer to the client
-ApnsHandler.prototype.convertOptionalTemplatePropsToOutputRegistration = function (regFromNh, registration) {
+ApnsHandler.prototype.convertOptionalTemplatePropsToOutputRegistration = (regFromNh, registration) => {
     if (regFromNh.Expiry) {
         registration.expiry = regFromNh.Expiry;
     }

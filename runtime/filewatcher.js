@@ -4,10 +4,11 @@
 //
 // A simple filewatcher that monitors a single file for changes.
 
-var core = require('./core'),
-    fs = require('fs'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var core = require('./core');
+
+var fs = require('fs');
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
@@ -39,7 +40,7 @@ FileWatcher.prototype._createFileWatcher = function () {
     this.logger.trace(logSource, _.sprintf("Starting filewatcher on file '%s'.", this.filepath));
 
     // get the initial timestamp
-    this.fs.stat(this.filepath, function (err, stats) {
+    this.fs.stat(this.filepath, (err, stats) => {
         if (!err) {
             self.lastModified = stats.mtime;
         }
@@ -54,8 +55,8 @@ FileWatcher.prototype._createFileWatcher = function () {
         // than fs.watch, because for networked files polling is the only reliable
         // way of detecting changes (e.g. fs.watch file handles periodically become
         // invalid).
-        self.interval = setInterval(function () {
-            self.fs.stat(self.filepath, function (err, stats) {
+        self.interval = setInterval(() => {
+            self.fs.stat(self.filepath, (err, stats) => {
                 if (!err) {
                     // determine whether the file has changed since the last time we checked
                     if (self.lastModified && self.lastModified.getTime() < stats.mtime.getTime()) {

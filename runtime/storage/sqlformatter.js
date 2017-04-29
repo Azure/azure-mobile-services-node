@@ -2,18 +2,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-(function (global) {
+((global => {
+    var core = require('../core');
+    var _ = require('underscore');
+    var _str = require('underscore.string');
 
-    var core = require('../core'),
-        _ = require('underscore'),
-        _str = require('underscore.string');
-
-        require('../query/expressions');
-        require('../query/expressionvisitor');
-        require('../query/queryparser');
-        require('./sqlbooleanizer');
-        require('./typeconverter');
-        require('./sqlhelpers');
+    require('../query/expressions');
+    require('../query/expressionvisitor');
+    require('../query/queryparser');
+    require('./sqlbooleanizer');
+    require('./typeconverter');
+    require('./sqlhelpers');
 
     _.mixin(_str.exports());
 
@@ -24,7 +23,7 @@
 
     var instanceMembers = {
 
-        format: function (query) {
+        format(query) {
             this.sql = '';
             this.paramNumber = 0;
             this.parameters = [];
@@ -47,7 +46,7 @@
             this.sql = this.sql.trim();
         },
 
-        _formatQuery: function (query) {
+        _formatQuery(query) {
             var formattedSql;
 
             var selection = query.select ? this._formatSelection(query.select, query.systemProperties) : '*';
@@ -86,9 +85,10 @@
             return formattedSql;
         },
 
-        _formatPagedQuery: function (query) {
-            var formattedSql, selection = '',
-                aliasedSelection = '';
+        _formatPagedQuery(query) {
+            var formattedSql;
+            var selection = '';
+            var aliasedSelection = '';
 
             if (query.select) {
                 selection = this._formatSelection(query.select, query.systemProperties);
@@ -117,7 +117,7 @@
             return formattedSql;
         },
 
-        _formatCountQuery: function (table, query) {
+        _formatCountQuery(table, query) {
             var filter;
 
             if (query.filter || query.id !== undefined || this.tableMetadata.supportsSoftDelete) {
@@ -132,7 +132,7 @@
             return sql;
         },
 
-        _formatOrderBy: function (query, defaultOrder) {
+        _formatOrderBy(query, defaultOrder) {
             var orderBy = query.orderBy;
 
             if (!orderBy) {
@@ -151,7 +151,7 @@
 
             var order = '';
             var self = this;
-            orderings.forEach(function (ordering) {
+            orderings.forEach(ordering => {
                 if (order.length > 0) {
                     order += ', ';
                 }
@@ -166,24 +166,24 @@
             return order;
         },
 
-        _formatSelection: function (selection, systemProperties, prefix) {
+        _formatSelection(selection, systemProperties, prefix) {
             systemProperties = (systemProperties || []).map(core.systemPropertyToColumnName);
 
-            var formattedSelection = '',
-                columns = selection.split(',').concat(systemProperties);
+            var formattedSelection = '';
+            var columns = selection.split(',').concat(systemProperties);
 
-            columns.forEach(function (column) {
+            columns.forEach(column => {
                 var member = column.trim();
                 if (formattedSelection.length > 0) {
                     formattedSelection += ', ';
                 }
                 formattedSelection += (prefix || '') + SqlHelpers.formatMember(member);
-            });            
+            });
 
             return formattedSelection;
         },
 
-        _formatFilter: function (query, defaultFilter) {
+        _formatFilter(query, defaultFilter) {
             // if we already have a parsed filter use it,
             // otherwise parse the filter
             var filterExpr;
@@ -231,13 +231,13 @@
 
         // run the final query translation pipeline on the specified
         // expression, modifying the expression tree as needed
-        _finalizeExpression: function (expr) {
+        _finalizeExpression(expr) {
             expr = SqlBooleanizer.booleanize(expr);
             expr = TypeConverter.convertTypes(expr, this.tableMetadata);
             return expr;
         },
 
-        visitBinary: function (expr) {
+        visitBinary(expr) {
             this.sql += '(';
 
             var left = null;
@@ -322,7 +322,7 @@
             return expr;
         },
 
-        visitConstant: function (expr) {
+        visitConstant(expr) {
             if (expr.value === null) {
                 this.sql += 'NULL';
                 return expr;
@@ -333,11 +333,11 @@
             return expr;
         },
 
-        _createParameter: function (value) {
+        _createParameter(value) {
             var parameter = {
                 name: '@p' + (this.paramNumber++).toString(),
                 pos: this.paramNumber,
-                value: value
+                value
             };
 
             this.parameters.push(parameter);
@@ -347,7 +347,7 @@
             return '?';
         },
 
-        visitMember: function (expr) {
+        visitMember(expr) {
             if (typeof expr.member === 'string') {
                 this.sql += SqlHelpers.formatMember(expr.member);
             }
@@ -358,7 +358,7 @@
             return expr;
         },
 
-        visitUnary: function (expr) {
+        visitUnary(expr) {
             if (expr.expressionType == ExpressionType.Not) {
                 this.sql += 'NOT ';
                 this.visit(expr.operand);
@@ -372,14 +372,14 @@
             return expr;
         },
 
-        visitFunction: function (expr) {
+        visitFunction(expr) {
             if (expr.memberInfo) {
                 this._formatMappedFunction(expr);
             }
             return expr;
         },
 
-        _formatMappedFunction: function (expr) {
+        _formatMappedFunction(expr) {
             if (expr.memberInfo.type == 'string') {
                 this._formatMappedStringMember(expr.instance, expr.memberInfo, expr.args);
             }
@@ -391,13 +391,13 @@
             }
         },
 
-        _formatMappedMember: function (expr) {
+        _formatMappedMember(expr) {
             if (expr.member.type == 'string') {
                 this._formatMappedStringMember(expr.instance, expr.member, null);
             }
         },
 
-        _formatMappedDateMember: function (instance, mappedMemberInfo, args) {
+        _formatMappedDateMember(instance, mappedMemberInfo, args) {
             var functionName = mappedMemberInfo.memberName;
 
             if (functionName == 'day') {
@@ -432,7 +432,7 @@
             }
         },
 
-        _formatMappedMathMember: function (instance, mappedMemberInfo, args) {
+        _formatMappedMathMember(instance, mappedMemberInfo, args) {
             var functionName = mappedMemberInfo.memberName;
 
             if (functionName == 'floor') {
@@ -455,7 +455,7 @@
             }
         },
 
-        _formatMappedStringMember: function (instance, mappedMemberInfo, args) {
+        _formatMappedStringMember(instance, mappedMemberInfo, args) {
             var functionName = mappedMemberInfo.memberName;
 
             if (functionName == 'substringof') {
@@ -579,5 +579,4 @@
     }
 
     SqlFormatter = core.deriveClass(ExpressionVisitor, ctor, instanceMembers);
-
-})(typeof exports === "undefined" ? this : exports);
+}))(typeof exports === "undefined" ? this : exports);

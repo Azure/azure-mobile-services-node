@@ -4,22 +4,23 @@
 //
 // Wraps a script cache and provides funcionality for loading scripts into the cache
 
-var fs = require('fs'),
-    path = require('path'),
-    ScriptCache = require('./scriptcache'),
-    StatusCodes = require('../statuscodes'),
-    fileHelpers = require('../filehelpers'),
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    core = require('../core'),
-    Metadata = require('./metadata');
+var fs = require('fs');
+
+var path = require('path');
+var ScriptCache = require('./scriptcache');
+var StatusCodes = require('../statuscodes');
+var fileHelpers = require('../filehelpers');
+var _ = require('underscore');
+var _str = require('underscore.string');
+var core = require('../core');
+var Metadata = require('./metadata');
 
 _.mixin(_str.exports());
 
 exports = module.exports = ScriptLoader;
 
-var logSource = 'ScriptLoader',
-    dataModelFileName = 'datamodel.json';
+var logSource = 'ScriptLoader';
+var dataModelFileName = 'datamodel.json';
 
 function ScriptLoader(configPath, cache, logger) {
     this.configPath = configPath;
@@ -35,13 +36,13 @@ ScriptLoader.prototype.load = function (done) {
 
     // only after we've loaded all directories do we complete
     core.async.series([
-        function (done) { self._loadDataModel(done); },
-        function (done) {
+        done => { self._loadDataModel(done); },
+        done => {
             core.async.parallel([
-                function (done) { self._loadTablesDirectory(done); },
-                function (done) { self._loadJobsDirectory(done); },
-                function (done) { self.loadScriptDirectory('shared', null, done); }                
-            ], function () {                
+                done => { self._loadTablesDirectory(done); },
+                done => { self._loadJobsDirectory(done); },
+                done => { self.loadScriptDirectory('shared', null, done); }                
+            ], () => {                
                 if (done) {
                     done();
                 }
@@ -67,7 +68,7 @@ ScriptLoader.prototype.loadScriptDirectory = function (scriptType, options, done
 
     this.logger.trace(logSource, _.sprintf("Loading scripts directory '%s'", filepath));
 
-    fs.readdir(filepath, function (err, files) {
+    fs.readdir(filepath, (err, files) => {
         if (err) {
             if (options && core.isFunction(options.error)) {
                 options.error(err);
@@ -77,9 +78,9 @@ ScriptLoader.prototype.loadScriptDirectory = function (scriptType, options, done
             throw err;
         }
 
-        var scriptsLoaded = 0,
-            numScriptsToLoad = files.length,
-            loadCallbackCount = 0;
+        var scriptsLoaded = 0;
+        var numScriptsToLoad = files.length;
+        var loadCallbackCount = 0;
 
         function loadComplete() {
             self.logger.trace(logSource, _.sprintf("%d %s script(s) loaded", scriptsLoaded, scriptType));
@@ -116,7 +117,7 @@ ScriptLoader.prototype.loadScriptDirectory = function (scriptType, options, done
             loadComplete();
         }
         else {
-            files.forEach(function (file) {
+            files.forEach(file => {
                 self._loadScript(scriptType, filepath, file, options, completeLoad);
             });
         }
@@ -124,8 +125,8 @@ ScriptLoader.prototype.loadScriptDirectory = function (scriptType, options, done
 };
 
 ScriptLoader.prototype.getDataModel = function () {
-    var key = this.cache.getKey('config', dataModelFileName),
-        dataModelEntry = this.cache.get(key);
+    var key = this.cache.getKey('config', dataModelFileName);
+    var dataModelEntry = this.cache.get(key);
 
     if (!dataModelEntry) {
         // since the datamodel file is loaded on startup, and the
@@ -138,9 +139,9 @@ ScriptLoader.prototype.getDataModel = function () {
 };
 
 ScriptLoader.prototype.getMetadata = function (scriptType, rootFileName) {
-    var metadataFileName = rootFileName + '.json',
-       key = this.cache.getKey(scriptType, metadataFileName),
-       metadataEntry = this.cache.get(key);
+    var metadataFileName = rootFileName + '.json';
+    var key = this.cache.getKey(scriptType, metadataFileName);
+    var metadataEntry = this.cache.get(key);
 
     if (metadataEntry && metadataEntry.module) {
         return metadataEntry.module;
@@ -163,10 +164,10 @@ ScriptLoader.prototype._loadScript = function (scriptType, filepath, filename, o
 
     this.logger.trace(logSource, _.sprintf("Loading '%s' into the script cache", filename));
 
-    var self = this,
-        scriptPath = path.join(filepath, filename),
-        scriptInfo = getScriptInfo(filepath, filename),
-        key = self.cache.getKey(scriptType, filename);
+    var self = this;
+    var scriptPath = path.join(filepath, filename);
+    var scriptInfo = getScriptInfo(filepath, filename);
+    var key = self.cache.getKey(scriptType, filename);
 
     function completeLoad(err) {
         if (!err) {
@@ -181,7 +182,7 @@ ScriptLoader.prototype._loadScript = function (scriptType, filepath, filename, o
     if (isModule(scriptType, filepath, filename)) {
         // first clear any existing require cache entry then load/reload
         delete require.cache[scriptPath];
-        fileHelpers.requireWithRetries(scriptPath, this.logger, function (err, loadedModule) {
+        fileHelpers.requireWithRetries(scriptPath, this.logger, (err, loadedModule) => {
             if (!err) {
                 if (isMetadataFile(filename)) {
                     try {
@@ -205,7 +206,7 @@ ScriptLoader.prototype._loadScript = function (scriptType, filepath, filename, o
         }, this.maxFileOperationRetries, this.fileOperationRetryIntervalMS);
     }
     else {
-        fileHelpers.readFileWithRetries(scriptPath, this.logger, function (err, script) {
+        fileHelpers.readFileWithRetries(scriptPath, this.logger, (err, script) => {
             if (!err) {
                 scriptInfo.script = script;
                 completeLoad();
@@ -222,7 +223,7 @@ ScriptLoader.prototype._loadScript = function (scriptType, filepath, filename, o
     }
 };
 
-ScriptLoader.logScriptLoadError = function (logger, err, scriptType, fileName) {
+ScriptLoader.logScriptLoadError = (logger, err, scriptType, fileName) => {
     var source = _.sprintf('/%s/%s', scriptType, fileName);
     logger.logUser(source, LogType.Error, _.sprintf("Failed to load script file '%s': %s", fileName, core.sanitizeUserCallStack(err)));
 };
@@ -271,7 +272,7 @@ ScriptLoader.prototype._loadTablesDirectory = function (done) {
     var dataModelIsValid = dataModel && dataModel.tables && Array.isArray(dataModel.tables);
 
     this.loadScriptDirectory('table', {
-        load: function (scriptInfo) {
+        load(scriptInfo) {
             if (dataModelIsValid && 
                 isMetadataFile(scriptInfo.scriptFileName) && // and this is a json file for a table 
                 !dataModel.getTable(scriptInfo.name)) { // and table is not already added                        
@@ -289,7 +290,7 @@ ScriptLoader.prototype._loadJobsDirectory = function (done) {
     var dataModelIsValid = dataModel && dataModel.jobs && Array.isArray(dataModel.jobs);
 
     this.loadScriptDirectory('scheduler', {
-        load: function (scriptInfo) {
+        load(scriptInfo) {
             if (dataModelIsValid && 
                 path.extname(scriptInfo.scriptFileName).toLowerCase() === '.js' && // and this is a script file for a job
                 !dataModel.getJob(scriptInfo.name)) { // and job is not already added                        
@@ -304,12 +305,12 @@ ScriptLoader.prototype._loadJobsDirectory = function (done) {
 
 ScriptLoader.prototype._loadDataModel = function (done) {
     var options = {
-        filter: function (filename) {
+        filter(filename) {
             // in the root config dir, we only load the single
             // datamodel.json file
             return filename.toLowerCase() === dataModelFileName;
         },
-        load: function (scriptInfo) {
+        load(scriptInfo) {
             configureDataModel(scriptInfo.module);
         }
     };
@@ -319,8 +320,8 @@ ScriptLoader.prototype._loadDataModel = function (done) {
 
 // extend the raw dataModel module by adding helper functions
 function configureDataModel(dataModel) {
-    var tableMap = dataModel._tableMap = {},
-        jobMap = dataModel._jobMap = {};
+    var tableMap = dataModel._tableMap = {};
+    var jobMap = dataModel._jobMap = {};
 
     function nameSelector(item) {
         return item.name.toLowerCase();
@@ -334,13 +335,9 @@ function configureDataModel(dataModel) {
         core.toLookup(dataModel.jobs, jobMap, nameSelector);
     }
 
-    dataModel.getTable = function (tableName) {
-        return tableMap[tableName.toLowerCase()];
-    };
+    dataModel.getTable = tableName => tableMap[tableName.toLowerCase()];
 
-    dataModel.getJob = function (jobName) {
-        return jobMap[jobName.toLowerCase()];
-    };
+    dataModel.getJob = jobName => jobMap[jobName.toLowerCase()];
 }
 
 // returns true if the specified file is a js or json file

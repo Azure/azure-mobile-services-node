@@ -4,16 +4,17 @@
 //
 // This module is used to create an azure notificationHubService
 
-var ZumoCallback = require('../script/zumocallback'),
-    notify = require('./scripthelpers/notify'),
-    notifyWns = require('./scripthelpers/notify-wns'),
-    notifyMpns = require('./scripthelpers/notify-mpns'),
-    notifyApns = require('./scripthelpers/notify-apns'),
-    notifyGcm = require('./scripthelpers/notify-gcm'),
-    NhRegistrationHandler = require('./nhregistrationhandler'),
-    path = require('path'),
-    _ = require('underscore'),
-    azure;
+var ZumoCallback = require('../script/zumocallback');
+
+var notify = require('./scripthelpers/notify');
+var notifyWns = require('./scripthelpers/notify-wns');
+var notifyMpns = require('./scripthelpers/notify-mpns');
+var notifyApns = require('./scripthelpers/notify-apns');
+var notifyGcm = require('./scripthelpers/notify-gcm');
+var NhRegistrationHandler = require('./nhregistrationhandler');
+var path = require('path');
+var _ = require('underscore');
+var azure;
 
 exports = module.exports = PushAdapter;
 
@@ -62,18 +63,10 @@ PushAdapter.prototype.createPushForScripts = function (source, logger, metrics, 
     } else if (!this.notificationHubPush) {
         var self = this;
         // define lazy properties for push provider wrappers
-        core.createLazyProperty(push, 'wns', function () {
-            return notify.createWrappedClient(self.directPushClients.wnsClient, source, logger, metrics, responseCallback);
-        });
-        core.createLazyProperty(push, 'mpns', function () {
-            return notify.createWrappedClient(self.directPushClients.mpnsClient, source, logger, metrics, responseCallback);
-        });
-        core.createLazyProperty(push, 'apns', function () {
-            return notify.createWrappedClient(self.directPushClients.apnsClient, source, logger, metrics, responseCallback);
-        });
-        core.createLazyProperty(push, 'gcm', function () {
-            return notify.createWrappedClient(self.directPushClients.gcmClient, source, logger, metrics, responseCallback);
-        });
+        core.createLazyProperty(push, 'wns', () => notify.createWrappedClient(self.directPushClients.wnsClient, source, logger, metrics, responseCallback));
+        core.createLazyProperty(push, 'mpns', () => notify.createWrappedClient(self.directPushClients.mpnsClient, source, logger, metrics, responseCallback));
+        core.createLazyProperty(push, 'apns', () => notify.createWrappedClient(self.directPushClients.apnsClient, source, logger, metrics, responseCallback));
+        core.createLazyProperty(push, 'gcm', () => notify.createWrappedClient(self.directPushClients.gcmClient, source, logger, metrics, responseCallback));
     }
 
     return push;

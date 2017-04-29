@@ -4,20 +4,21 @@
 //
 // This module is responsible for loading and running extension scripts
 
-var path = require('path'),
-    fs = require('fs'),
-    core = require('../core'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var path = require('path');
+
+var fs = require('fs');
+var core = require('../core');
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
 exports = module.exports = ExtensionManager;
 
-var logSource = 'ExtensionManager',
-    extensionsDirectory = 'extensions',
-    startupFileName = 'startup.js',
-    pushFileName = 'push.js';
+var logSource = 'ExtensionManager';
+var extensionsDirectory = 'extensions';
+var startupFileName = 'startup.js';
+var pushFileName = 'push.js';
 
 ExtensionManager.pushMetadataFileName = 'push.json';
 
@@ -43,7 +44,7 @@ ExtensionManager.prototype.initialize = function (done) {
 
     var options = {
         load: this._onScriptLoad.bind(this),
-        error: function (err) {
+        error(err) {
             self.logger.logUser(logSource, LogType.Error, err.toString());
             done();
         }
@@ -56,7 +57,7 @@ ExtensionManager.prototype.runPushRegistrationScript = function (registration, u
     var options = {
         swallowError: false,
         args: registration,
-        extraContext: { user: user }
+        extraContext: { user }
     };
 
     this.runExtensionScript(pushFileName, 'register', options, done);
@@ -121,8 +122,8 @@ ExtensionManager.prototype._getExtension = function (name) {
 };
 
 ExtensionManager.prototype._callExtension = function (name, module, method, options, context, done) {
-    var self = this,
-        doneCalled = false;
+    var self = this;
+    var doneCalled = false;
 
     var fn = module[method];
     if (!core.isFunction(fn)) {
@@ -148,7 +149,7 @@ ExtensionManager.prototype._callExtension = function (name, module, method, opti
         extensionArgs.push(context);
 
         if (options && _.isNumber(options.scriptTimeout)) {
-            var callbackWrapper = function (error) {
+            var callbackWrapper = error => {
                 if (!doneCalled) {
                     doneCalled = true;
                     if (options && !options.swallowError) {
@@ -164,7 +165,7 @@ ExtensionManager.prototype._callExtension = function (name, module, method, opti
             extensionArgs.push(done);
         }
 
-        fn.apply(null, extensionArgs);
+        fn(...extensionArgs);
     } catch (e) {
         this.logger.logUser(logSource, LogType.Error, _.sprintf('Failed to execute \'%s\' of %s due to error: %s', method, name, e.toString()));
         if (options && !options.swallowError) {
@@ -174,7 +175,7 @@ ExtensionManager.prototype._callExtension = function (name, module, method, opti
 
     if (options && _.isNumber(options.scriptTimeout)) {
         // if module fails to call 'done' with in time limit then we call it ourself to resume execution
-        setTimeout(function () {
+        setTimeout(() => {
             if (!doneCalled) {
                 doneCalled = true;
                 var errorMessage = _.sprintf('\'%s\' of \'%s\' failed to call \'done\' method with in %d ms', method, name, options.scriptTimeout);

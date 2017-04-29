@@ -4,8 +4,9 @@
 //
 // This module is the helper to assist nhregistrationhandler with Mpns registration operations
 
-var core = require('../../core'),
-    _ = require('underscore');
+var core = require('../../core');
+
+var _ = require('underscore');
 
 exports = module.exports = MpnsHandler;
 
@@ -39,7 +40,10 @@ MpnsHandler.prototype.transformInputToNhRegistration = function (inputRegistrati
         registration.BodyTemplate = inputRegistration.templateBody;
         if (inputRegistration.headers) {
             registration.MpnsHeaders = {};
-            registration.MpnsHeaders.MpnsHeader = _.map(inputRegistration.headers, function (value, headerName) { return { Header: headerName, Value: value }; });
+            registration.MpnsHeaders.MpnsHeader = _.map(inputRegistration.headers, (value, headerName) => ({
+                Header: headerName,
+                Value: value
+            }));
         }
 
         if (inputRegistration.templateName) {
@@ -60,17 +64,15 @@ MpnsHandler.prototype.listRegistrations = function (deviceId, callback) {
 };
 
 // Provides the specific property to snag the unique registration Id from
-MpnsHandler.prototype.getDeviceIdFromNhRegistration = function (regFromNh) {
-    return regFromNh.ChannelUri;
-};
+MpnsHandler.prototype.getDeviceIdFromNhRegistration = regFromNh => regFromNh.ChannelUri;
 
 // Converts any optional template members from Service Bus for this notifcation service into members of registration object
 // for transfer to the client
-MpnsHandler.prototype.convertOptionalTemplatePropsToOutputRegistration = function (regFromNh, registration) {
+MpnsHandler.prototype.convertOptionalTemplatePropsToOutputRegistration = (regFromNh, registration) => {
     if (regFromNh.MpnsHeaders) {
         if (regFromNh.MpnsHeaders.MpnsHeader) {
             registration.headers = {};
-            _.each(regFromNh.MpnsHeaders.MpnsHeader, function (header) {
+            _.each(regFromNh.MpnsHeaders.MpnsHeader, header => {
                 registration.headers[header.Header] = header.Value;
             }, registration.headers);
         }

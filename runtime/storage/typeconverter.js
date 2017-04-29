@@ -2,10 +2,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-(function (global) {
-
-    var core = require('../core'),
-        _ = require('underscore');
+((global => {
+    var core = require('../core');
+    var _ = require('underscore');
 
     require('../query/expressions');
     require('../query/expressionvisitor');
@@ -18,7 +17,7 @@
 
     var instanceMembers = {
 
-        visitBinary: function (expr) {
+        visitBinary(expr) {
             var left = expr.left ? this.visit(expr.left) : null;
             var right = expr.right ? this.visit(expr.right) : null;
 
@@ -36,13 +35,13 @@
             return expr;
         },
 
-        _isStringConstant: function(expr) {
+        _isStringConstant(expr) {
             return expr &&
                    expr.expressionType === ExpressionType.Constant &&
                    core.isString(expr.value);
         },
 
-        _isBinaryMemberAccess: function (expr) {
+        _isBinaryMemberAccess(expr) {
             return expr &&
                    expr.expressionType === ExpressionType.MemberAccess &&
                    core.isString(expr.member) &&
@@ -52,12 +51,11 @@
 
     TypeConverter = core.deriveClass(ExpressionVisitor, ctor, instanceMembers);
 
-    TypeConverter.convertTypes = function (expr, tableMetadata) {
+    TypeConverter.convertTypes = (expr, tableMetadata) => {
         var converter = new TypeConverter(tableMetadata);
 
         expr = converter.visit(expr);
 
         return expr;
     };
-
-})(typeof exports === "undefined" ? this : exports);
+}))(typeof exports === "undefined" ? this : exports);

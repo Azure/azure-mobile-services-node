@@ -43,7 +43,7 @@ AadCert.prototype.getCerts = function (callback, options) {
     var self = this;
 
     // Make call to get the certs
-    LoginHandler.makeSecureRequest(requestOptions, null, function (error, res, body) {
+    LoginHandler.makeSecureRequest(requestOptions, null, (error, res, body) => {
         var result = null;
         // Ensure that the request was successful
         if (!error && res.statusCode !== 200) {
@@ -68,12 +68,12 @@ AadCert.prototype.getCerts = function (callback, options) {
         }
 
         callback(error, result);
-    }.bind(this));
+    });
 };
 
-AadCert.parseCertificates = function (json) {
-    var parsedKeys = JSON.parse(json),
-        certArray = [];
+AadCert.parseCertificates = json => {
+    var parsedKeys = JSON.parse(json);
+    var certArray = [];
 
     for (var keyNum = 0; keyNum < parsedKeys.keys.length; keyNum++) {
         var x5TCertLabel = parsedKeys.keys[keyNum].x5t;

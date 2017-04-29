@@ -2,13 +2,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-var _ = require('underscore'),
-    _str = require('underscore.string'),
-    core = require('../core');
+var _ = require('underscore');
+
+var _str = require('underscore.string');
+var core = require('../core');
 
 _.mixin(_str.exports());
 
-exports.handleScriptError = function (error, source, logger, responseCallback, message) {
+exports.handleScriptError = (error, source, logger, responseCallback, message) => {
     if (error instanceof core.MobileServiceError && !error.loggedToUser && (error.code === core.ErrorCodes.ScriptError || error.code === undefined)) {
         if (!message) {
             message = _.sprintf("Error in script '%s'.", source);

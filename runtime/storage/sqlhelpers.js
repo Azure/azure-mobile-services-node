@@ -2,12 +2,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-(function (global) {
-
-    var _ = require('underscore'),
-        _str = require('underscore.string'),
-        resource = require('../resources'),
-        core = require('../core');
+((global => {
+    var _ = require('underscore');
+    var _str = require('underscore.string');
+    var resource = require('../resources');
+    var core = require('../core');
 
     _.mixin(_str.exports());
 
@@ -56,18 +55,18 @@
     var classMembers = {
         // inspects the specified error (including innerError) and returns
         // the sqlstate if it exists
-        getSqlErrorCode: function (err) {
+        getSqlErrorCode(err) {
             if (err) {
                 return err.innerError ? err.innerError.sqlstate : err.sqlstate;
             }
         },
 
         // determines whether the specified error is a sql error
-        isSqlError: function (err) {
+        isSqlError(err) {
             return err && !!this.getSqlErrorCode(err);
         },
 
-        isThrottleError: function (err) {
+        isThrottleError(err) {
             // There are a set of SqlAzure specific throttle errors that we must identify by
             // error number, in addition to the general HY000 sql state they return. These are:
             // http://social.technet.microsoft.com/wiki/contents/articles/1541.windows-azure-sql-database-connection-management.aspx
@@ -81,7 +80,7 @@
         // has an error code that matches one of our
         // 'retry' codes, indicating that the failed sql
         // operation should be reattempted.
-        isTemporaryError: function (err) {
+        isTemporaryError(err) {
             var errCode = err.sqlstate;
             if (errCode) {
                 for (var idx in SqlTemporaryErrorCodes) {
@@ -100,12 +99,10 @@
         // Returns true if the specified sql error is considered to be
         // an application controlled issue. Returns false if the error is
         // likely due to bad input data (e.g. wrong data type, null constraint, etc)
-        isApplicationError: function (err) {
+        isApplicationError(err) {
             var sqlErrorCode = this.getSqlErrorCode(err);
             if (sqlErrorCode) {
-                return _.any(SqlApplicationErrorCodes, function (code) {
-                    return sqlErrorCode == code;
-                });
+                return _.any(SqlApplicationErrorCodes, code => sqlErrorCode == code);
             }
             return false;
         },
@@ -113,7 +110,7 @@
         // Returns true if the specified sql error should be considered
         // a "system" sql error that we should log to our system log.
         // See here for more info on ODBC status codes: http://msdn.microsoft.com/en-us/library/ms714687.aspx
-        isSystemSqlError: function (err) {
+        isSystemSqlError(err) {
             var sqlErrorCode = this.getSqlErrorCode(err);
             if (!sqlErrorCode) {
                 return false;
@@ -135,7 +132,7 @@
         // 
         // When used with proper sql parameterization techniques, this
         // mitigates SQL INJECTION attacks.
-        isValidIdentifier: function (identifier) {
+        isValidIdentifier(identifier) {
             if (!identifier || !core.isString(identifier) || identifier.length > 128) {
                 return false;
             }
@@ -157,7 +154,7 @@
             return true;
         },
 
-        validateIdentifier: function (identifier) {
+        validateIdentifier(identifier) {
             if (!this.isValidIdentifier(identifier)) {
                 throw new core.MobileServiceError(_.sprintf(resource.invalidIdentifier, identifier), core.ErrorCodes.BadInput);
             }
@@ -166,24 +163,24 @@
         // SECURITY - sql generation relies on these format functions to
         // validate identifiers to mitigate sql injection attacks
         // in the dynamic sql we generate
-        formatTableName: function (schemaName, tableName) {
+        formatTableName(schemaName, tableName) {
             this.validateIdentifier(schemaName);
             this.validateIdentifier(tableName);
             return _.sprintf('[%s].[%s]', schemaName, tableName);
         },
 
-        formatSchemaName: function (appName) {
+        formatSchemaName(appName) {
             // Hyphens are not supported in schema names
             return appName.replace(/-/g, '_');
         },
 
-        formatMember: function (memberName) {
+        formatMember(memberName) {
             this.validateIdentifier(memberName);
             return _.sprintf('[%s]', memberName);
         },
 
         // map json datatypes to SqlTypes
-        getSqlType: function (value) {
+        getSqlType(value) {
             var type = core.classof(value);
             switch (type) {
                 case 'string':
@@ -201,5 +198,4 @@
     };
 
     SqlHelpers = core.defineClass(null, null, classMembers);
-
-})(typeof exports === "undefined" ? this : exports);
+}))(typeof exports === "undefined" ? this : exports);

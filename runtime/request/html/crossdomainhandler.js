@@ -17,19 +17,19 @@
 
 exports = module.exports = CrossDomainHandler;
 
-var core = require('../../core'),
-    templating = require('./templating'),
-    StatusCodes = require('../../statuscodes').StatusCodes,
-    logSource = 'CrossDomainHandler';
+var core = require('../../core');
+var templating = require('./templating');
+var StatusCodes = require('../../statuscodes').StatusCodes;
+var logSource = 'CrossDomainHandler';
 
 function CrossDomainHandler(corsHelper) {
     this.corsHelper = corsHelper;
 }
 
 CrossDomainHandler.prototype.handle = function (req, res) {
-    var logger = req._context.logger,
-        responseCallback = req._context.responseCallback;
-    
+    var logger = req._context.logger;
+    var responseCallback = req._context.responseCallback;
+
     logger.trace(logSource, 'Processing request');
 
     switch (req.params.crossDomainItem) {
@@ -63,13 +63,14 @@ CrossDomainHandler.prototype.handle = function (req, res) {
 
 CrossDomainHandler.prototype._getAllowedOriginFromQueryParams = function (request, queryParamName, responseCallback) {
     // This function returns a truthy value only if it satisfies the whitelist
-    var queryParams = request.query,
-        attemptedOrigin = queryParams && queryParams[queryParamName];
+    var queryParams = request.query;
+
+    var attemptedOrigin = queryParams && queryParams[queryParamName];
 
     if (attemptedOrigin && this.corsHelper.isAllowedOrigin(attemptedOrigin)) {
         return attemptedOrigin;
     }
-    
+
     responseCallback(new core.MobileServiceError('Not a whitelisted origin: ' + attemptedOrigin), null, StatusCodes.UNAUTHORIZED);
     return null;
 };

@@ -4,11 +4,12 @@
 //
 // This module provides a json web token implementation
 
-var crypto = require('crypto'),
-    Encryptor = require('./encryptor'),
-    Buffer = require('buffer').Buffer,
-    core = require('./core'),
-    _ = require('underscore');
+var crypto = require('crypto');
+
+var Encryptor = require('./encryptor');
+var Buffer = require('buffer').Buffer;
+var core = require('./core');
+var _ = require('underscore');
 
 exports = module.exports;
 
@@ -34,7 +35,7 @@ exports.windowsLiveSigningSuffix = JsonWebToken.windowsLiveSigningSuffix;
 // envelope is an object or string containing JWT envelope
 // key is an object containing both the crypto key and the key used to build signature 
 // signingSuffix contains a suffix that is appended to the standard JWT signingKey
-exports.create = function (claims, envelope, key, signingSuffix) {
+exports.create = (claims, envelope, key, signingSuffix) => {
     var jwt = new JsonWebToken(key, signingSuffix);
 
     jwt.setEnvelope(envelope);
@@ -60,7 +61,7 @@ exports.create = function (claims, envelope, key, signingSuffix) {
 //         x5t JWTs: [{ x5t: '<certThumprint>', certs: ['<cert1>', '<cert2>'] }]
 //         kid JWTs: { 'id': 'cert1', 'id1': 'cert2' }
 // signingSuffix contains a suffix that is appended to the standard JWT signingKey when validating the signature
-exports.parse = function (token, keyOrCertificates, signingSuffix) {
+exports.parse = (token, keyOrCertificates, signingSuffix) => {
     var jwt = new JsonWebToken(keyOrCertificates, signingSuffix);
 
     // Get the token segments & perform validation
@@ -81,9 +82,7 @@ exports.parse = function (token, keyOrCertificates, signingSuffix) {
 };
 
 // This is a test hook to allow replay of expired tokens for unit tests
-exports.now = function () {
-    return new Date();
-};
+exports.now = () => new Date();
 
 // determine whether this JWT instance has expired
 JsonWebToken.prototype.isExpired = function () {
@@ -145,9 +144,7 @@ JsonWebToken.prototype.verifyRsaSha256Signature = function () {
 
 JsonWebToken.prototype.verifyRsaSha256SignatureX5t = function () {
     var self = this;
-    var matchedPublicX5TSets = _.find(this._certificates, function (x5TCertificates) {
-        return x5TCertificates.x5t === self.envelope.x5t;
-    });
+    var matchedPublicX5TSets = _.find(this._certificates, x5TCertificates => x5TCertificates.x5t === self.envelope.x5t);
 
     if (!matchedPublicX5TSets) {
         // The cert was not found. Return this information in the error,
@@ -158,9 +155,7 @@ JsonWebToken.prototype.verifyRsaSha256SignatureX5t = function () {
     }
 
     // Now check all certs listed as matching against the JWT signature
-    return _.some(matchedPublicX5TSets.certs, function (publicKey) {
-        return self.verifySignatureByCert(publicKey);        
-    });
+    return _.some(matchedPublicX5TSets.certs, publicKey => self.verifySignatureByCert(publicKey));
 };
 
 JsonWebToken.prototype.verifyRsaSha256SignatureKid = function() {

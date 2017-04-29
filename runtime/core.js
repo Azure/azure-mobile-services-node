@@ -3,18 +3,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-var _ = require('underscore'),
-    _str = require('underscore.string');
+var _ = require('underscore');
+
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
-(function (exports) {
+((exports => {
 
     function curry(fn) {
-        var slice = Array.prototype.slice,
-            args = slice.call(arguments, 1);
+        var slice = Array.prototype.slice;
+        var args = slice.call(arguments, 1);
         return function () {
-            return fn.apply(null, args.concat(slice.call(arguments)));
+            return fn(...args.concat(slice.call(arguments)));
         };
     }
 
@@ -26,7 +27,7 @@ _.mixin(_str.exports());
     }
 
     function defineClass(ctor, instanceMembers, classMembers) {
-        ctor = ctor || function () { };
+        ctor = ctor || (() => { });
         if (instanceMembers) {
             extend(ctor.prototype, instanceMembers);
         }
@@ -41,14 +42,12 @@ _.mixin(_str.exports());
         var prototype = {};
         extend(prototype, basePrototype);
 
-        var getPrototype = function (name, fn) {
-            return function () {
-                var tmp = this._super;
-                this._super = basePrototype;
-                var ret = fn.apply(this, arguments);
-                this._super = tmp;
-                return ret;
-            };
+        var getPrototype = (name, fn) => function(...args) {
+            var tmp = this._super;
+            this._super = basePrototype;
+            var ret = fn.apply(this, args);
+            this._super = tmp;
+            return ret;
         };
 
         if (instanceMembers) {
@@ -60,16 +59,14 @@ _.mixin(_str.exports());
         }
 
         ctor = ctor ?
-            (function (fn) {
-                return function () {
-                    var tmp = this._super;
-                    this._super = basePrototype;
-                    var ret = fn.apply(this, arguments);
-                    this._super = tmp;
-                    return ret;
-                };
-            })(ctor)
-            : function () { };
+            ((fn => function(...args) {
+                var tmp = this._super;
+                this._super = basePrototype;
+                var ret = fn.apply(this, args);
+                this._super = tmp;
+                return ret;
+            }))(ctor)
+            : () => { };
 
         ctor.prototype = prototype;
         ctor.prototype.constructor = ctor;
@@ -318,12 +315,12 @@ _.mixin(_str.exports());
             // If this is a merge conflict, the first parameter will be the original item
             // involved in the update or delete
             Object.defineProperty(this, 'isMergeConflict', {
-                get: function () {
+                get() {
                     return code === ErrorCodes.MergeConflict;
                 }
             });
             Object.defineProperty(this, 'isConflict', {
-                get: function () {
+                get() {
                     return code === ErrorCodes.Conflict;
                 }
             });
@@ -344,7 +341,7 @@ _.mixin(_str.exports());
             this.code = code;
         }
     }, {
-        toString: function () {
+        toString() {
             if (this.innerError) {
                 return this.innerError.toString(); // Preserve error type prefix (ie: SyntaxError:, SqlError:)
             } else {
@@ -432,9 +429,7 @@ _.mixin(_str.exports());
 
     function getSystemProperty(name) {
         name = name.toLowerCase();
-        return _.find(supportedSystemProperties, function (property) {
-            return property.name.toLowerCase() === name;
-        });
+        return _.find(supportedSystemProperties, property => property.name.toLowerCase() === name);
     }
 
     function validateAndNormalizeSystemProperties(systemProperties) {
@@ -449,15 +444,13 @@ _.mixin(_str.exports());
 
         // Check for the '*' (all system properties) value
         if (isStarSystemProperty(systemProperties)) {
-            normalizedSystemProperties = supportedSystemProperties.map(function (property) {
-                return property.name;
-            });
+            normalizedSystemProperties = supportedSystemProperties.map(property => property.name);
         }
         else {
             // otherwise, validate each individual system property
-            _.each(systemProperties, function (systemProperty) {
-                var original = systemProperty,
-                    isKnownProperty = false;
+            _.each(systemProperties, systemProperty => {
+                var original = systemProperty;
+                var isKnownProperty = false;
 
                 if (isString(systemProperty)) {
                     // remove any whitespace and make all lower case
@@ -595,9 +588,7 @@ _.mixin(_str.exports());
     // Following paths in call stack do not point to file that caused the error.
     var ignorePaths = ['Microsoft.Azure.Zumo.Runtime.Node.Test'];
     function isIgnoredPathInFrame(frame) {
-        var found = _.any(ignorePaths, function(path) {
-            return frame.indexOf(path) > 0;
-        });
+        var found = _.any(ignorePaths, path => frame.indexOf(path) > 0);
         return found;
     }
 
@@ -658,7 +649,7 @@ _.mixin(_str.exports());
         var value;
 
         Object.defineProperty(target, name, {
-            get: function () {
+            get() {
                 if (value === undefined) {
                     // if we haven't accessed the value yet, get it
                     // and cache it
@@ -683,7 +674,7 @@ _.mixin(_str.exports());
         if (!Array.isArray(array)) {
             throw Error('First parameter must be an array');
         }
-        array.forEach(function (item) {
+        array.forEach(item => {
             var key = keySelector(item);
             map[key] = item;
         });
@@ -693,7 +684,7 @@ _.mixin(_str.exports());
     // should use this version of stringify to ensure that all 
     // byte arrays (Buffers in node.js) are serialized correctly.
     function stringify(itemToStringify) {
-        return JSON.stringify(itemToStringify, function (item, value) {
+        return JSON.stringify(itemToStringify, (item, value) => {
             if (Buffer.isBuffer(value)) {
                 value = value.toString('base64');
             }
@@ -705,10 +696,10 @@ _.mixin(_str.exports());
         // run the specified array of functions in sequence
         // series: array of functions
         // done: the callback to call after all have been run
-        series: function (series, done) {
+        series(series, done) {
             var stepIdx = 0;
 
-            var next = function (err) {
+            var next = err => {
                 if (err || stepIdx == (series.length)) {
                     done(err);
                 }
@@ -723,16 +714,16 @@ _.mixin(_str.exports());
         // run the specified array of functions in parallel
         // series: array of functions
         // done: the callback to call after all have been run
-        parallel: function (series, done) {
+        parallel(series, done) {
             var completed = 0;
-            var complete = function (err) {
+            var complete = err => {
                 if (err || ++completed == series.length) {
                     done(err);
                 }
             };
 
             // start all functions in parallel
-            series.forEach(function (f) {
+            series.forEach(f => {
                 f(complete);
             });
         }
@@ -919,4 +910,4 @@ _.mixin(_str.exports());
     var stringIdValidatorRegex = /([\u0000-\u001F]|[\u007F-\u009F]|["\+\?\\\/\`]|^\.{1,2}$)/;
 
 
-})(typeof exports === 'undefined' ? (this.core = {}) : exports);
+}))(typeof exports === 'undefined' ? (this.core = {}) : exports);

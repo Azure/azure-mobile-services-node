@@ -50,21 +50,21 @@
 
 exports = module.exports = LoginHandler;
 
-var core = require('../core'),
-    UserService = require('../users/userService'),
-    jsonWebToken = require('../jsonwebtoken'),
-    StatusCodes = require('../statuscodes').StatusCodes,
-    templating = require('./html/templating'),
-    https = require('https'),
-    Encryptor = require('../encryptor'),
-    Twitter = require('./authentication/twitter'),
-    Google = require('./authentication/google'),
-    Facebook = require('./authentication/facebook'),
-    MicrosoftAccount = require('./authentication/microsoftaccount'),
-    Aad = require('./authentication/aad'),
-    resources = require('../resources'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var core = require('../core');
+var UserService = require('../users/userService');
+var jsonWebToken = require('../jsonwebtoken');
+var StatusCodes = require('../statuscodes').StatusCodes;
+var templating = require('./html/templating');
+var https = require('https');
+var Encryptor = require('../encryptor');
+var Twitter = require('./authentication/twitter');
+var Google = require('./authentication/google');
+var Facebook = require('./authentication/facebook');
+var MicrosoftAccount = require('./authentication/microsoftaccount');
+var Aad = require('./authentication/aad');
+var resources = require('../resources');
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
@@ -114,10 +114,10 @@ LoginHandler.prototype.initialize = function (done) {
 };
 
 LoginHandler.prototype.handle = function (req, res) {
-    var logger = req._context.logger,
-        metrics = req._context.metrics,
-        responseCallback = req._context.responseCallback,
-        request = req._context.parsedRequest;
+    var logger = req._context.logger;
+    var metrics = req._context.metrics;
+    var responseCallback = req._context.responseCallback;
+    var request = req._context.parsedRequest;
 
     request.query = req.query;  // login needs the raw query
     request.authenticationProvider = req.params.authenticationProvider;
@@ -135,10 +135,10 @@ LoginHandler.prototype.handle = function (req, res) {
     var loginContext = {
         loginHandler: this,
         corsHelper: this.corsHelper,
-        request: request,
-        responseCallback: responseCallback,
-        logger: logger,
-        metrics: metrics
+        request,
+        responseCallback,
+        logger,
+        metrics
     };
 
     // If this is a completed server flow, just return OK
@@ -199,7 +199,7 @@ LoginHandler.prototype._handleClientFlowRequest = function (loginContext) {
     logger.trace(logSource, _.sprintf('Getting the %s provider token from the client flow request.', providerName));
 
     // Get the provider's token out of the request
-    provider.getProviderTokenFromClientFlowRequest(request, function (error, providerToken) {
+    provider.getProviderTokenFromClientFlowRequest(request, (error, providerToken) => {
         if (error) {
             _respondWithError(loginContext, error);
             return;
@@ -208,18 +208,18 @@ LoginHandler.prototype._handleClientFlowRequest = function (loginContext) {
         logger.trace(logSource, _.sprintf('Getting the %s provider token from the client flow request succeeded.', providerName));
         logger.trace(logSource, _.sprintf('Exchanging the %s provider token for a Windows Azure Mobile Services token.', providerName));
 
-        handler.userService.isEnabled(function (err, usersEnabled) {
+        handler.userService.isEnabled((err, usersEnabled) => {
             var options = {
-                usersEnabled: usersEnabled
+                usersEnabled
             };
-            provider.getAuthorizationDetailsFromProviderToken(request, providerToken, function (innerError, authorizationDetails) {
+            provider.getAuthorizationDetailsFromProviderToken(request, providerToken, (innerError, authorizationDetails) => {
 
                 if (innerError) {
                     _respondWithError(loginContext, innerError);
                     return;
                 }
 
-                self._createResponseForLoginToken(logger, loginContext, authorizationDetails, providerName, function (err, responseBody) {
+                self._createResponseForLoginToken(logger, loginContext, authorizationDetails, providerName, (err, responseBody) => {
                     if (err) {
                         _respondWithError(loginContext, err);
                         return;
@@ -232,7 +232,7 @@ LoginHandler.prototype._handleClientFlowRequest = function (loginContext) {
     });
 };
 
-LoginHandler.prototype._handleServerFlowRequest = function (loginContext) {
+LoginHandler.prototype._handleServerFlowRequest = loginContext => {
     // A server authentication flow will consist of two requests.  The client will first
     // send a request to initiate the flow for a particular provider and we'll redirect 
     // the client to the provider's login page. After the user logs in with the provider, 
@@ -267,20 +267,20 @@ LoginHandler.prototype._handleServerFlowRequest = function (loginContext) {
 // Any errors that might occur when making the request or getting the response are
 // marshalled to the callback, which has the following signature:
 //   callback(error, response, responseBody)
-LoginHandler.makeSecureRequest = function (requestOptions, requestBody, callback) {
+LoginHandler.makeSecureRequest = (requestOptions, requestBody, callback) => {
 
-    var request = https.request(requestOptions, function (response) {
+    var request = https.request(requestOptions, response => {
         var responseBody = '';
-        response.on('data', function (data) {
+        response.on('data', data => {
             responseBody += data;
         });
 
-        response.on('end', function () {
+        response.on('end', () => {
             callback(null, response, responseBody);
         });
     });
 
-    request.on('error', function (error) {
+    request.on('error', error => {
         callback(error, null, null);
     });
 
@@ -289,7 +289,7 @@ LoginHandler.makeSecureRequest = function (requestOptions, requestBody, callback
 
 // Simplifies reading a value for a cookie from request/response headers.
 // RETURNS: cookie value or null if there was no such cookie
-LoginHandler.getCookieFromHeaders = function (name, headers) {
+LoginHandler.getCookieFromHeaders = (name, headers) => {
     // Get the cookie value and decode it
     var cookies = _parseCookies(headers);
     var value = cookies[name];
@@ -302,7 +302,7 @@ LoginHandler.getCookieFromHeaders = function (name, headers) {
 
 // Simplifies writing a value for a cookie to response headers.
 // RETURNS: nothing
-LoginHandler.addCookieToHeaders = function (name, value, headers) {
+LoginHandler.addCookieToHeaders = (name, value, headers) => {
     // Create the cookie
     var encodedValue = encodeURIComponent(value);
     if (encodedValue === 'deleted') {
@@ -332,14 +332,12 @@ LoginHandler.addCookieToHeaders = function (name, value, headers) {
     headers._parsedCookies[name] = value;
 };
 
-LoginHandler.createOAuthRedirectState = function () {
-    // Per OAuth 2, this function creates a unique per-request state that the 
-    // authentication provider will echo back as a query parameter when redirecting 
-    // client's browser back to the Zumo server. The server will then validate the 
-    // value of the state. This state reflecting mechanism is meant to prevent certain 
-    // class of cross-site scripting attacks.
-    return Math.floor(Math.random() * 100000000000).toString(16) + (new Date()).getTime().toString(16);
-};
+LoginHandler.createOAuthRedirectState = () => // Per OAuth 2, this function creates a unique per-request state that the 
+// authentication provider will echo back as a query parameter when redirecting 
+// client's browser back to the Zumo server. The server will then validate the 
+// value of the state. This state reflecting mechanism is meant to prevent certain 
+// class of cross-site scripting attacks.
+Math.floor(Math.random() * 100000000000).toString(16) + (new Date()).getTime().toString(16);
 
 function _handleNewServerFlowRequest(loginContext, currentUri) {
     // This function handles the first request of the two-request server authentication flow.
@@ -365,13 +363,13 @@ function _handleNewServerFlowRequest(loginContext, currentUri) {
 
     logger.trace(logSource, _.sprintf('Initializing a new server authentication flow with provider: %s.', providerName));
 
-    loginContext.loginHandler.userService.isEnabled(function (err, usersEnabled) {
+    loginContext.loginHandler.userService.isEnabled((err, usersEnabled) => {
         // Get the location header and any others from the provider-specific login handler as
         // we're going to redirect the client to the login page for the given provider.
         var options = {
-            usersEnabled: usersEnabled
+            usersEnabled
         };
-        provider.getNewServerFlowResponseHeaders(request, currentUri, function (error, headers) {
+        provider.getNewServerFlowResponseHeaders(request, currentUri, (error, headers) => {
 
             if (error) {
                 _redirectWithError(loginContext, error);
@@ -435,7 +433,7 @@ function _handleContinuedServerFlowRequest(loginContext, currentUri) {
 
     logger.trace(logSource, _.sprintf('Continuing a server authentication flow with provider: %s.', providerName));
 
-    provider.getProviderTokenFromServerFlowRequest(request, currentUri, function (error1, providerToken) {
+    provider.getProviderTokenFromServerFlowRequest(request, currentUri, (error1, providerToken) => {
 
         if (error1) {
             _performFailedServerFlowAction(loginContext, error1);
@@ -445,18 +443,18 @@ function _handleContinuedServerFlowRequest(loginContext, currentUri) {
         logger.trace(logSource, _.sprintf('Retrieved a %s provider token in a server authentication flow.', providerName));
         logger.trace(logSource, _.sprintf('Exchanging the %s provider token for a Windows Azure Mobile Services token.', providerName));
 
-        handler.userService.isEnabled(function (err, usersEnabled) {
+        handler.userService.isEnabled((err, usersEnabled) => {
             var options = {
-                usersEnabled: usersEnabled
+                usersEnabled
             };
-            provider.getAuthorizationDetailsFromProviderToken(request, providerToken, function (error2, authorizationDetails) {
+            provider.getAuthorizationDetailsFromProviderToken(request, providerToken, (error2, authorizationDetails) => {
 
                 if (error2) {
                     _performFailedServerFlowAction(loginContext, error2);
                     return;
                 }
 
-                handler._createResponseForLoginToken(logger, loginContext, authorizationDetails, providerName, function (err, responseBody) {
+                handler._createResponseForLoginToken(logger, loginContext, authorizationDetails, providerName, (err, responseBody) => {
                     if (err) {
                         _respondWithError(loginContext, err);
                     }
@@ -475,8 +473,9 @@ function _performCompletedServerFlowAction(loginContext, oAuthResponse) {
     if (!completionAction) {
         // Non-browser clients complete the flow by redirecting to a "done" URL
         // with the oAuthResponse encoded into the hash
-        var encodedResponse = encodeURIComponent(JSON.stringify(oAuthResponse)),
-            redirectUri = _getFinalRedirectUri(loginContext) + '#token=' + encodedResponse;
+        var encodedResponse = encodeURIComponent(JSON.stringify(oAuthResponse));
+
+        var redirectUri = _getFinalRedirectUri(loginContext) + '#token=' + encodedResponse;
         _redirectWithSuccess(loginContext, { Location: redirectUri });
     } else {
         // Browser clients send back a script that posts the token to the window opener
@@ -500,8 +499,8 @@ function _performFailedServerFlowAction(loginContext, error) {
 }
 
 function _returnServerFlowCompletionScriptToBrowser(loginContext, completionAction, oAuthResponse, oAuthError) {
-    var responseCallback = loginContext.responseCallback,
-        responseHeaders = {};
+    var responseCallback = loginContext.responseCallback;
+    var responseHeaders = {};
 
     // Ensure that all 'wams' cookies get cleaned up.
     _deleteAllUnsetWAMSCookies(loginContext, responseHeaders);
@@ -534,10 +533,10 @@ function _returnServerFlowCompletionScriptToBrowser(loginContext, completionActi
 }
 
 function _validateSingleSignOnRedirectUri(singleSignOnRedirectUri, loginContext) {
-    var logger = loginContext.logger,
-        packageSid = _getPackageSid(loginContext),
-        error = null,
-        isValid = true;
+    var logger = loginContext.logger;
+    var packageSid = _getPackageSid(loginContext);
+    var error = null;
+    var isValid = true;
 
     if (!packageSid) {
         error = new Error(resources.packageSidMissing);
@@ -565,10 +564,10 @@ function _getPackageSid(loginContext) {
 }
 
 function _validateSingleSignOnRedirectUri(singleSignOnRedirectUri, loginContext) {
-    var logger = loginContext.logger,
-        packageSid = _getPackageSid(loginContext),
-        error = null,
-        isValid = true;
+    var logger = loginContext.logger;
+    var packageSid = _getPackageSid(loginContext);
+    var error = null;
+    var isValid = true;
 
     if (!packageSid) {
         error = new Error(resources.packageSidMissing);
@@ -596,7 +595,7 @@ function _getPackageSid(loginContext) {
 }
 
 LoginHandler.prototype._createResponseForLoginToken = function (logger, loginContext, authorizationDetails, providerName, callback) {
-    this.userService.isEnabled(function (err, usersEnabled) {
+    this.userService.isEnabled((err, usersEnabled) => {
         if (err) {
             callback(err);
             return;
@@ -614,7 +613,7 @@ LoginHandler.prototype._createResponseForLoginToken = function (logger, loginCon
 
             var providerKey = UserService.getProviderKeyByName(loginContext.provider.name);
 
-            this.userService.addUserIdentity(providerKey, authorizationDetails.providerId, properties, function (err, user) {
+            this.userService.addUserIdentity(providerKey, authorizationDetails.providerId, properties, (err, user) => {
                 if (err) {
                     callback(err);
                     return;
@@ -625,17 +624,17 @@ LoginHandler.prototype._createResponseForLoginToken = function (logger, loginCon
                 responseBody.user.id = user.id;
                 callback(null, responseBody);
 
-            }.bind(this));
+            });
         }
         else {
             var loginToken = _createLoginTokenFromAuthorizationDetails(loginContext, authorizationDetails, usersEnabled);
             var responseBody = this._createResponseBodyForLoginToken(loginContext, authorizationDetails, usersEnabled);
             callback(null, responseBody);
         }
-    }.bind(this));
+    });
 };
 
-LoginHandler.prototype._createResponseBodyForLoginToken = function (loginContext, authorizationDetails, usersEnabled) {
+LoginHandler.prototype._createResponseBodyForLoginToken = (loginContext, authorizationDetails, usersEnabled) => {
     var loginToken = _createLoginTokenFromAuthorizationDetails(loginContext, authorizationDetails, usersEnabled);
     var responseBody = {
         user: {
@@ -704,8 +703,8 @@ function _redirectWithSuccess(loginContext, headers) {
 }
 
 function _respondWithError(loginContext, error) {
-    var providerName = loginContext.request.authenticationProvider,
-        headers = {};
+    var providerName = loginContext.request.authenticationProvider;
+    var headers = {};
 
     if (loginContext.provider) {
         // ensure that the metric is logged only after we've validated the provider
@@ -724,9 +723,10 @@ function _respondWithError(loginContext, error) {
 
 function _redirectWithError(loginContext, error) {
     // Create a redirect URL that includes the error
-    var redirectUri = _getFinalRedirectUri(loginContext) + '#error=' + encodeURIComponent(error),
-        headers = { Location: redirectUri },
-        providerName = loginContext.request.authenticationProvider;
+    var redirectUri = _getFinalRedirectUri(loginContext) + '#error=' + encodeURIComponent(error);
+
+    var headers = { Location: redirectUri };
+    var providerName = loginContext.request.authenticationProvider;
 
     // Ensure that all 'wams' cookies get cleaned up.
     _deleteAllUnsetWAMSCookies(loginContext, headers);
@@ -750,7 +750,7 @@ function _parseCookies(headers) {
         var cookies = headers.cookie;
         var result = {};
         if (cookies) {
-            cookies.split(';').forEach(function (cookie) {
+            cookies.split(';').forEach(cookie => {
                 cookie = cookie.replace(/ /g, '');
                 var i = cookie.indexOf('=');
                 if (i > 0) {
@@ -775,7 +775,7 @@ function _deleteAllUnsetWAMSCookies(loginContext, responseHeaders) {
     // Get the cookies sent by the client
     var cookies = _parseCookies(loginContext.request.headers);
 
-    Object.getOwnPropertyNames(cookies).forEach(function (cookieName) {
+    Object.getOwnPropertyNames(cookies).forEach(cookieName => {
 
         // Only delete cookies that begin with 'wams_'
         if (cookieName.indexOf('wams_') === 0) {
@@ -844,8 +844,8 @@ function _addCompletionActionCookie(completionAction, headers) {
 }
 
 function _getCompletionActionFromQueryString(query) {
-    var completionType = query.completion_type,
-        completionOrigin = query.completion_origin;
+    var completionType = query.completion_type;
+    var completionOrigin = query.completion_origin;
     if (completionType && completionOrigin) {
         return { type: completionType, origin: completionOrigin };
     } else {

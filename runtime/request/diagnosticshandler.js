@@ -6,9 +6,10 @@
 // which is used by the availability monitoring feature. This endpoint is secured -
 // it requires the master key header.
 
-var StatusCodes = require('../statuscodes').StatusCodes,
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var StatusCodes = require('../statuscodes').StatusCodes;
+
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
@@ -23,9 +24,9 @@ function DiagnosticsHandler(appName, version, storage) {
 }
 
 DiagnosticsHandler.prototype.handle = function (req, res) {
-    var logger = req._context.logger,
-        responseCallback = req._context.responseCallback,
-        status = StatusCodes.OK;
+    var logger = req._context.logger;
+    var responseCallback = req._context.responseCallback;
+    var status = StatusCodes.OK;
 
     logger.trace(logSource, 'Processing request');
 
@@ -40,7 +41,7 @@ DiagnosticsHandler.prototype.handle = function (req, res) {
         }
     };
 
-    this._getSqlStatus(req, function (err, sqlStatus) {
+    this._getSqlStatus(req, (err, sqlStatus) => {
         if (err) {
             // indicate degraded service via the top level status code
             status = StatusCodes.SERVICE_UNAVAILABLE;
@@ -58,19 +59,22 @@ DiagnosticsHandler.prototype.handle = function (req, res) {
 };
 
 DiagnosticsHandler.prototype._getSqlStatus = function (req, callback) {
-    var logger = req._context.logger,
-        sqlStatus = {
-            statusCode: StatusCodes.OK,
-            latencyMS: 0
-        },
-        startTime = new Date(),
-        options = {
-            disableUserLog: true
-        };
+    var logger = req._context.logger;
+
+    var sqlStatus = {
+        statusCode: StatusCodes.OK,
+        latencyMS: 0
+    };
+
+    var startTime = new Date();
+
+    var options = {
+        disableUserLog: true
+    };
 
     logger.trace(logSource, 'Checking SQL connectivity');
 
-    this.storage.executeSql('SELECT', "SELECT getutcdate() AS currentDate", null, logger, options, function (err) {
+    this.storage.executeSql('SELECT', "SELECT getutcdate() AS currentDate", null, logger, options, err => {
         if (err) {
             sqlStatus.statusCode = StatusCodes.SERVICE_UNAVAILABLE;
             var errDetails = [];

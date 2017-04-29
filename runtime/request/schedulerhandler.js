@@ -4,10 +4,11 @@
 //
 // This module is responsible for scheduler job execution requests
 
-var DataPipeline = require('./datapipeline'),
-    Storage = require('../storage/storage'),
-    core = require('../core'),
-    StatusCodes = require('../statuscodes').StatusCodes;
+var DataPipeline = require('./datapipeline');
+
+var Storage = require('../storage/storage');
+var core = require('../core');
+var StatusCodes = require('../statuscodes').StatusCodes;
 
 exports = module.exports = SchedulerHandler;
 
@@ -21,9 +22,9 @@ function SchedulerHandler(scriptManager, masterKey, appName, metrics) {
 }
 
 SchedulerHandler.prototype.handle = function (req, res) {
-    var logger = req._context.logger,
-        responseCallback = req._context.responseCallback,
-        request = req._context.parsedRequest;
+    var logger = req._context.logger;
+    var responseCallback = req._context.responseCallback;
+    var request = req._context.parsedRequest;
 
     request.job = req.params.job;
 

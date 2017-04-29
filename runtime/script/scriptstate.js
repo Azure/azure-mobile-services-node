@@ -4,12 +4,13 @@
 //
 // State machine for orchestrating script callback execution
 
-var core = require('../core'),
-    resources = require('../resources'),
-    scriptErrors = require('./scripterror'),
-    StatusCodes = require('../statuscodes').StatusCodes,
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var core = require('../core');
+
+var resources = require('../resources');
+var scriptErrors = require('./scripterror');
+var StatusCodes = require('../statuscodes').StatusCodes;
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
@@ -26,7 +27,7 @@ function ScriptState(operation, scriptArg, tableMetadata, responseCallback, logg
 
     // Define an interceptor response callback which will allow us to
     // capture and save results until respond has been called
-    this.responseCallback = _.wrap(responseCallback, function (oldCallback, err, results, statusCode, byUser) {
+    this.responseCallback = _.wrap(responseCallback, (oldCallback, err, results, statusCode, byUser) => {
         if (self.responseComplete) {
             if (byUser) {
                 var stack = new core.MobileServiceError(resources.responseAlreadySent, core.ErrorCodes.ScriptError).stack;
@@ -77,7 +78,7 @@ ScriptState.prototype.execute = function (callbackOptions) {
     // runtime, which we then dispatch to any callback functions
     // provided by the script.
     var self = this;
-    var scriptCallback = function (err, results) {
+    var scriptCallback = (err, results) => {
 
         // Because the conflict handler can call back into context.execute()
         // we need to update the saved data (from the original conflict). Also,
@@ -144,7 +145,7 @@ ScriptState.prototype._executeCallbackOption = function (callback, args) {
     this.delayResponse = true;
 
     try {
-        callback.apply(null, args);
+        callback(...args);
     }
     catch (err) {
         // If an exception occurred in the handler, we need to unblock the response,
@@ -206,7 +207,7 @@ ScriptState.validateRespondParameters = function (statusOrError, body) {
 ScriptState.prototype._saveResponseData = function (error, results, statusCode) {
     this.responseData = {
         err: error,
-        results: results,
+        results,
         statusCode: statusCode || null
     };
 };
