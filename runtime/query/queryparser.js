@@ -2,15 +2,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-(function (global) {
-
+((global => {
     require('./expressions');
 
-    var _ = require('underscore'),
-        _str = require('underscore.string'),
-        core = require('../core');
+    var _ = require('underscore');
+    var _str = require('underscore.string');
+    var core = require('../core');
 
- _.mixin(_str.exports());
+    _.mixin(_str.exports());
 
     TokenId = {
         Unknown: 'Unknown',
@@ -54,13 +53,13 @@
     };
 
     var classMembers = {
-        filter: function (predicate) {
+        filter(predicate) {
             var parser = new QueryParser(predicate);
             var filter = parser.parse();
             return filter;
         },
 
-        orderBy: function (ordering) {
+        orderBy(ordering) {
             var parser = new QueryParser(ordering);
             var orderings = parser.parseOrdering();
             return orderings;
@@ -68,7 +67,7 @@
     };
 
     var instanceMembers = {
-        parse: function () {
+        parse() {
             var exprPos = this.token.pos;
             var expr = this._parseExpression();
 
@@ -76,7 +75,7 @@
             return expr;
         },
 
-        parseOrdering: function () {
+        parseOrdering() {
             var orderings = [];
             while (true) {
                 var expr = this._parseExpression();
@@ -90,7 +89,7 @@
                 }
                 orderings.push({
                     selector: expr,
-                    ascending: ascending
+                    ascending
                 });
                 if (this.token.id != TokenId.Comma) {
                     break;
@@ -101,16 +100,16 @@
             return orderings;
         },
 
-        _tokenIdentifierIs: function (id) {
+        _tokenIdentifierIs(id) {
             return this.token.id == TokenId.Identifier && id == this.token.text;
         },
 
-        _parseExpression: function () {
+        _parseExpression() {
             return this._parseLogicalOr();
         },
 
         // 'or' operator
-        _parseLogicalOr: function () {
+        _parseLogicalOr() {
             var left = this._parseLogicalAnd();
             while (this.token.id == TokenId.Or) {
                 this._nextToken();
@@ -121,7 +120,7 @@
         },
 
         // 'and' operator
-        _parseLogicalAnd: function () {
+        _parseLogicalAnd() {
             var left = this._parseComparison();
             while (this.token.id == TokenId.And) {
                 this._nextToken();
@@ -131,7 +130,7 @@
             return left;
         },
 
-        _parseComparison: function () {
+        _parseComparison() {
             var left = this._parseAdditive();
             while (this.token.id == TokenId.Equal || this.token.id == TokenId.NotEqual || this.token.id == TokenId.GreaterThan ||
                 this.token.id == TokenId.GreaterThanEqual || this.token.id == TokenId.LessThan || this.token.id == TokenId.LessThanEqual) {
@@ -167,7 +166,7 @@
         },
 
         // 'add','sub' operators
-        _parseAdditive: function () {
+        _parseAdditive() {
             var left = this._parseMultiplicative();
             while (this.token.id == TokenId.Add || this.token.id == TokenId.Sub) {
                 var opId = this.token.id;
@@ -186,7 +185,7 @@
         },
 
         // 'mul', 'div', 'mod' operators
-        _parseMultiplicative: function () {
+        _parseMultiplicative() {
             var left = this._parseUnary();
             while (this.token.id == TokenId.Multiply || this.token.id == TokenId.Divide ||
                     this.token.id == TokenId.Modulo) {
@@ -209,7 +208,7 @@
         },
 
         // -, 'not' unary operators
-        _parseUnary: function () {
+        _parseUnary() {
             if (this.token.id == TokenId.Minus || this.token.id == TokenId.Not) {
                 var opId = this.token.id;
                 var opPos = this.token.pos;
@@ -232,7 +231,7 @@
             return this._parsePrimary();
         },
 
-        _parsePrimary: function () {
+        _parsePrimary() {
             var expr = this._parsePrimaryStart();
             while (true) {
                 if (this.token.id == TokenId.Dot) {
@@ -246,7 +245,7 @@
             return expr;
         },
 
-        _parseMemberAccess: function (instance) {
+        _parseMemberAccess(instance) {
             var errorPos = this.token.pos;
             var id = this._getIdentifier();
             this._nextToken();
@@ -264,7 +263,7 @@
             }
         },
 
-        _parseMappedFunction: function (mappedMember, errorPos) {
+        _parseMappedFunction(mappedMember, errorPos) {
             var type = mappedMember.type;
             var mappedMemberName = mappedMember.memberName;
             var args;
@@ -310,7 +309,7 @@
             }
         },
 
-        _beginValidateFunction: function (functionName, errorPos) {
+        _beginValidateFunction(functionName, errorPos) {
             if (functionName === 'replace') {
                 // Security: nested calls to replace must be prevented to avoid an exploit
                 // wherein the client can force the server to allocate arbitrarily large
@@ -322,7 +321,7 @@
             }
         },
 
-        _completeValidateFunction: function (functionName, functionArgs, errorPos) {
+        _completeValidateFunction(functionName, functionArgs, errorPos) {
             // validate parameters
             switch (functionName) {
                 case 'day':
@@ -367,7 +366,7 @@
             this.inStringReplace = false;
         },
 
-        _validateFunctionParameters: function (functionName, args, expectedArgCount) {
+        _validateFunctionParameters(functionName, args, expectedArgCount) {
             if (args.length !== expectedArgCount) {
                 var error = _.sprintf("Function '%s' requires %d %s",
                     functionName, expectedArgCount, (expectedArgCount > 1) ? "parameters." : "parameter.");
@@ -375,7 +374,7 @@
             }
         },
 
-        _parseArgumentList: function () {
+        _parseArgumentList() {
             this._validateToken(TokenId.OpenParen, "'(' expected");
             this._nextToken();
             var args = this.token.id != TokenId.CloseParen ? this._parseArguments() : [];
@@ -384,7 +383,7 @@
             return args;
         },
 
-        _parseArguments: function () {
+        _parseArguments() {
             var args = [];
             while (true) {
                 args.push(this._parseExpression());
@@ -396,7 +395,7 @@
             return args;
         },
 
-        _mapFunction: function (functionName) {
+        _mapFunction(functionName) {
             var mappedMember = this._mapStringFunction(functionName);
             if (mappedMember !== null) {
                 return mappedMember;
@@ -415,7 +414,7 @@
             return null;
         },
 
-        _mapStringFunction: function (functionName) {
+        _mapStringFunction(functionName) {
             if (functionName == 'startswith') {
                 return new MappedMemberInfo('string', functionName, false, true);
             }
@@ -436,7 +435,7 @@
             }
             else if (functionName == 'substringof') {
                 var memberInfo = new MappedMemberInfo('string', functionName, false, true);
-                memberInfo.mapParams = function (args) {
+                memberInfo.mapParams = args => {
                     // reverse the order of arguments for string.Contains
                     var tmp = args[0];
                     args[0] = args[1];
@@ -463,7 +462,7 @@
             return null;
         },
 
-        _mapDateFunction: function (functionName) {
+        _mapDateFunction(functionName) {
             if (functionName == 'day') {
                 return new MappedMemberInfo('date', functionName, false, true);
             }
@@ -485,7 +484,7 @@
             return null;
         },
 
-        _mapMathFunction: function (functionName) {
+        _mapMathFunction(functionName) {
             if (functionName == 'floor') {
                 return new MappedMemberInfo('math', functionName, false, true);
             }
@@ -498,12 +497,12 @@
             return null;
         },
 
-        _getIdentifier: function () {
+        _getIdentifier() {
             this._validateToken(TokenId.Identifier, 'Identifier expected');
             return this.token.text;
         },
 
-        _parsePrimaryStart: function () {
+        _parsePrimaryStart() {
             switch (this.token.id) {
                 case TokenId.Identifier:
                     return this._parseIdentifier();
@@ -520,7 +519,7 @@
             }
         },
 
-        _parseIntegerLiteral: function () {
+        _parseIntegerLiteral() {
             this._validateToken(TokenId.IntegerLiteral);
             var text = this.token.text;
 
@@ -541,7 +540,7 @@
             return new ConstantExpression(value);
         },
 
-        _parseRealLiteral: function () {
+        _parseRealLiteral() {
             this._validateToken(TokenId.RealLiteral);
             var text = this.token.text;
 
@@ -561,7 +560,7 @@
             return new ConstantExpression(value);
         },
 
-        _parseParenExpression: function () {
+        _parseParenExpression() {
             this._validateToken(TokenId.OpenParen, "'(' expected");
             this._nextToken();
             var e = this._parseExpression();
@@ -570,7 +569,7 @@
             return e;
         },
 
-        _parseIdentifier: function () {
+        _parseIdentifier() {
             this._validateToken(TokenId.Identifier);
             var value = this.keywords[this.token.text];
             if (value) {
@@ -593,7 +592,7 @@
             throw this._parseError(_.sprintf("Unknown identifier '%s'", this.token.text));
         },
 
-        _parseTypeConstruction: function (type) {
+        _parseTypeConstruction(type) {
             var typeIdentifier = this.token.text;
             var errorPos = this.token.pos;
             this._nextToken();
@@ -631,7 +630,7 @@
             return typeExpression;
         },
 
-        _parseStringLiteral: function () {
+        _parseStringLiteral() {
             this._validateToken(TokenId.StringLiteral);
             var quote = this.token.text[0];
             // Unwrap string (remove surrounding quotes) and unwrap escaped quotes.
@@ -641,13 +640,13 @@
             return new ConstantExpression(s);
         },
 
-        _validateToken: function (tokenId, error) {
+        _validateToken(tokenId, error) {
             if (this.token.id != tokenId) {
                 throw this._parseError(error || 'Syntax error');
             }
         },
 
-        _createKeywords: function () {
+        _createKeywords() {
             return {
                 "true": new ConstantExpression(true),
                 "false": new ConstantExpression(false),
@@ -659,12 +658,12 @@
             };
         },
 
-        _setTextPos: function (pos) {
+        _setTextPos(pos) {
             this.textPos = pos;
             this.ch = this.textPos < this.textLen ? this.text[this.textPos] : '\\0';
         },
 
-        _nextToken: function () {
+        _nextToken() {
             while (this._isWhiteSpace(this.ch)) {
                 this._nextChar();
             }
@@ -762,7 +761,7 @@
             this.token.id = this._reclassifyToken(this.token);
         },
 
-        _reclassifyToken: function (token) {
+        _reclassifyToken(token) {
             if (token.id == TokenId.Identifier) {
                 if (token.text == "or") {
                     return TokenId.Or;
@@ -811,33 +810,33 @@
             return token.id;
         },
 
-        _nextChar: function () {
+        _nextChar() {
             if (this.textPos < this.textLen) {
                 this.textPos++;
             }
             this.ch = this.textPos < this.textLen ? this.text[this.textPos] : '\\0';
         },
 
-        _isWhiteSpace: function (ch) {
+        _isWhiteSpace(ch) {
             return (/\s/).test(ch);
         },
 
-        _validateDigit: function () {
+        _validateDigit() {
             if (!core.isDigit(this.ch)) {
                 throw this._parseError('Digit expected', this.textPos);
             }
         },
 
-        _parseError: function (error, pos) {
+        _parseError(error, pos) {
             pos = pos || this.token.pos || 0;
             return new Error(error + ' (at index ' + pos + ')');
         },
 
-        _isIdentifierStart: function (ch) {
+        _isIdentifierStart(ch) {
             return core.isLetter(ch);
         },
 
-        _isIdentifierPart: function (ch) {
+        _isIdentifierPart(ch) {
             if (this._isIdentifierStart(ch)) {
                 return true;
             }
@@ -855,5 +854,4 @@
     };
 
     QueryParser = core.defineClass(ctor, instanceMembers, classMembers);
-
-})(typeof exports === "undefined" ? this : exports);
+}))(typeof exports === "undefined" ? this : exports);

@@ -5,22 +5,22 @@
 // Supplies CORS headers as per app configuration
 
 function CorsHelper(options) {
-
     var url = require('url');
 
     var defaultCrossDomainWhitelist = [
             { host: 'localhost' }
-        ],
-        configuredCrossDomainWhitelist = options.crossDomainWhitelist || defaultCrossDomainWhitelist,
-        isNullAllowed = false,
-        allowedHostNamesRegexes = getHostNameRegexesFromConfiguredWhitelist(configuredCrossDomainWhitelist),
-        allowedHeadersRegex = /^[a-z0-9\-\,\s]{1,500}$/i; // Lenient enough to match any header names we will ever use
+        ]; // Lenient enough to match any header names we will ever use
+
+    var configuredCrossDomainWhitelist = options.crossDomainWhitelist || defaultCrossDomainWhitelist;
+    var isNullAllowed = false;
+    var allowedHostNamesRegexes = getHostNameRegexesFromConfiguredWhitelist(configuredCrossDomainWhitelist);
+    var allowedHeadersRegex = /^[a-z0-9\-\,\s]{1,500}$/i;
 
     this.getCorsHeaders = function (request) {
-        var incomingHeaders = request.headers || {},
-            requestedOrigin = incomingHeaders.origin,
-            requestedHeaders = incomingHeaders['access-control-request-headers'],
-            corsHeaders = {};
+        var incomingHeaders = request.headers || {};
+        var requestedOrigin = incomingHeaders.origin;
+        var requestedHeaders = incomingHeaders['access-control-request-headers'];
+        var corsHeaders = {};
 
         if (requestedOrigin && this.isAllowedOrigin(requestedOrigin)) {
             // CORS doesn't permit multiple origins or wildcards, so the standard
@@ -43,17 +43,20 @@ function CorsHelper(options) {
         return corsHeaders;
     };
 
-    this.isAllowedOrigin = function (origin) {
+    this.isAllowedOrigin = origin => {
         // special case 'null' that is sent from browser on local files
         if (isNullAllowed && origin === 'null') {
             return true;
         }
 
         // Extract the components of the origin
-        var parsedOrigin = url.parse(origin),
-            originHostName = parsedOrigin && parsedOrigin.hostname, // Note that "host" includes the port; "hostname" doesn't
-            originProtocol = parsedOrigin && parsedOrigin.protocol,
-            originPath = parsedOrigin && parsedOrigin.path;
+        var parsedOrigin = url.parse(origin);
+
+        var // Note that "host" includes the port; "hostname" doesn't
+        originHostName = parsedOrigin && parsedOrigin.hostname;
+
+        var originProtocol = parsedOrigin && parsedOrigin.protocol;
+        var originPath = parsedOrigin && parsedOrigin.path;
 
         // Validate protocol
         if (!originProtocol || !isAllowedProtocol(originProtocol)) {
@@ -70,17 +73,15 @@ function CorsHelper(options) {
             return false;
         }
 
-        return allowedHostNamesRegexes.some(function (hostNameRegex) {
-            return hostNameRegex.test(originHostName);
-        });
+        return allowedHostNamesRegexes.some(hostNameRegex => hostNameRegex.test(originHostName));
     };
-    
+
     function isAllowedProtocol(protocol) {
         // This means that filesystem origins ("null") aren't supported right now
         // even if you allow "*"
         return protocol === 'http:' || protocol === 'https:' || protocol === 'ms-appx-web:';
     }
-    
+
     function isAllowedPath(path) {
         // The W3C spec isn't especially clear about host origins should be formatted,
         // so to be graceful we permit trailing slashes even though I'm not aware of a
@@ -114,7 +115,7 @@ function CorsHelper(options) {
         var result = [];
 
         if (whitelist) {
-            whitelist.forEach(function (whitelistEntry) {
+            whitelist.forEach(whitelistEntry => {
                 if (!whitelistEntry) {
                     return;
                 }

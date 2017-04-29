@@ -4,15 +4,16 @@
 //
 // This module is responsible for handling table requests end to end (query/insert/update/delete).
 
-var DataPipeline = require('./datapipeline'),
-    core = require('../core'),
-    StatusCodes = require('../statuscodes').StatusCodes,
-    resource = require('../resources'),
-    ETagHelper = require('./etaghelper'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var DataPipeline = require('./datapipeline');
 
- _.mixin(_str.exports());
+var core = require('../core');
+var StatusCodes = require('../statuscodes').StatusCodes;
+var resource = require('../resources');
+var ETagHelper = require('./etaghelper');
+var _ = require('underscore');
+var _str = require('underscore.string');
+
+_.mixin(_str.exports());
 
 exports = module.exports = TableHandler;
 
@@ -25,10 +26,10 @@ function TableHandler(storage, scriptManager, metrics) {
 }
 
 TableHandler.prototype.handle = function (req, res) {
-    var logger = req._context.logger,
-        responseCallback = req._context.responseCallback,
-        request = req._context.parsedRequest,
-        self = this;
+    var logger = req._context.logger;
+    var responseCallback = req._context.responseCallback;
+    var request = req._context.parsedRequest;
+    var self = this;
 
     request.table = req.params.table;
     request.id = req.params.id;
@@ -39,7 +40,7 @@ TableHandler.prototype.handle = function (req, res) {
 
     var dataPipeline = this._createDataPipeline(request, logger);
 
-    this.storage.getTableMetadata(request.table, logger, function (err, tableMetadata) {
+    this.storage.getTableMetadata(request.table, logger, (err, tableMetadata) => {
 
         if (err) {
             responseCallback(err);
@@ -72,7 +73,7 @@ TableHandler.prototype.handle = function (req, res) {
     });
 };
 
-TableHandler.prototype._handleRead = function (request, dataPipeline, responseCallback) {
+TableHandler.prototype._handleRead = (request, dataPipeline, responseCallback) => {
     if (request.id !== undefined) {
         request.query.id = request.id;
     }
@@ -80,7 +81,7 @@ TableHandler.prototype._handleRead = function (request, dataPipeline, responseCa
     dataPipeline.read(request.query, responseCallback);
 };
 
-TableHandler.prototype._handleUndelete = function (request, tableMetadata, dataPipeline, responseCallback) {
+TableHandler.prototype._handleUndelete = (request, tableMetadata, dataPipeline, responseCallback) => {
     if (!tableMetadata.supportsSoftDelete) {
         responseCallback(new core.MobileServiceError(resource.undeleteNotSupported, core.ErrorCodes.BadInput));
         return;
@@ -105,7 +106,7 @@ TableHandler.prototype._handleUndelete = function (request, tableMetadata, dataP
     dataPipeline.update(item, responseCallback);   
 };
 
-TableHandler.prototype._handleInsert = function (request, tableMetadata, dataPipeline, responseCallback) {
+TableHandler.prototype._handleInsert = (request, tableMetadata, dataPipeline, responseCallback) => {
     if (request.id !== undefined) {
         responseCallback(new core.MobileServiceError(resource.idInUrlNotAllowedOnInsert, core.ErrorCodes.BadInput));
         return;
@@ -128,7 +129,7 @@ TableHandler.prototype._handleInsert = function (request, tableMetadata, dataPip
         return;
     }
 
-    responseCallback = _.wrap(responseCallback, function (oldCallback, error, result, statusCode) {
+    responseCallback = _.wrap(responseCallback, (oldCallback, error, result, statusCode) => {
         var additionalHeaders = null;
         if (!error && request.body && request.body.id) {
             // if the insert was successful, add the Location header
@@ -141,7 +142,7 @@ TableHandler.prototype._handleInsert = function (request, tableMetadata, dataPip
     dataPipeline.insert(request.body, responseCallback);
 };
 
-TableHandler.prototype._handleUpdate = function (request, tableMetadata, dataPipeline, responseCallback) {
+TableHandler.prototype._handleUpdate = (request, tableMetadata, dataPipeline, responseCallback) => {
     if (!request.id) {
         responseCallback(new core.MobileServiceError(resource.idValueRequiredOnUpdate, core.ErrorCodes.BadInput));
         return;
@@ -178,7 +179,7 @@ TableHandler.prototype._handleUpdate = function (request, tableMetadata, dataPip
     dataPipeline.update(item, responseCallback);
 };
 
-TableHandler.prototype._handleDelete = function (request, tableMetadata, dataPipeline, responseCallback) {
+TableHandler.prototype._handleDelete = (request, tableMetadata, dataPipeline, responseCallback) => {
     if (!request.id) {
         responseCallback(new core.MobileServiceError(resource.idValueRequiredOnDelete, core.ErrorCodes.BadInput));
         return;
@@ -257,9 +258,7 @@ function isStringIdValid(request, responseCallback) {
 
 function isIdFieldValid(request, responseCallback) {
     // If an object has any id casing other than 'id', return an error.
-    if (['ID', 'Id', 'iD'].some(function (idFormat) {
-        return request.body.hasOwnProperty(idFormat);
-    })) {
+    if (['ID', 'Id', 'iD'].some(idFormat => request.body.hasOwnProperty(idFormat))) {
         responseCallback(new core.MobileServiceError(resource.idPropertyCaseMismatch, core.ErrorCodes.BadInput));
         return false;
     }

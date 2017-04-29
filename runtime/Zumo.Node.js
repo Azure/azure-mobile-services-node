@@ -9,7 +9,7 @@
 // lost the next time it is regenerated.
 
 
-(function (global) {
+((global => {
     /// <field name="$__modules__">
     /// Map module names to either their cached exports or a function which
     /// will define the module's exports when invoked.
@@ -47,7 +47,7 @@
         }
     }
 
-    $__modules__.NodeExports = function (exports) {
+    $__modules__.NodeExports = exports => {
         // ----------------------------------------------------------------------------
         // Copyright (c) Microsoft Corporation. All rights reserved.
         // ----------------------------------------------------------------------------
@@ -68,63 +68,66 @@
          * ----------------------------------------------------------------------------
          */
         
-        (function() {
-          var JS, JavaScript, JavaScriptToQueryVisitor, PartialEvaluator, esprima;
-        
-          esprima = require('esprima');
-        
-          JS = require('./JavaScriptNodes');
-        
-          PartialEvaluator = require('./PartialEvaluator').PartialEvaluator;
-        
-          JavaScriptToQueryVisitor = require('./JavaScriptToQueryVisitor').JavaScriptToQueryVisitor;
-        
-        
-          /*
-           * Define operations on JavaScript
-           */
-        
-          exports.JavaScript = JavaScript = (function() {
-            function JavaScript() {}
-        
-        
+        ((() => {
+            var JS;
+            var JavaScript;
+            var JavaScriptToQueryVisitor;
+            var PartialEvaluator;
+            var esprima;
+
+            esprima = require('esprima');
+
+            JS = require('./JavaScriptNodes');
+
+            PartialEvaluator = require('./PartialEvaluator').PartialEvaluator;
+
+            JavaScriptToQueryVisitor = require('./JavaScriptToQueryVisitor').JavaScriptToQueryVisitor;
+
+
             /*
-             * Static method to transform a constraint specified as a function into
-             * a QueryExpression tree.
+             * Define operations on JavaScript
              */
-        
-            JavaScript.transformConstraint = function(func, env) {
-        
+
+            exports.JavaScript = JavaScript = ((() => {
+              function JavaScript() {}
+          
+          
               /*
-               * Parse the body of the function into a JavaScriptExpression tree
-               * (into a context that also contains its source and manually reified
-               * environment)
+               * Static method to transform a constraint specified as a function into
+               * a QueryExpression tree.
                */
-              var context, translator;
-              context = JavaScript.getExpression(func, env);
-        
+          
+              JavaScript.transformConstraint = (func, env) => {
+                  /*
+                   * Parse the body of the function into a JavaScriptExpression tree
+                   * (into a context that also contains its source and manually reified
+                   * environment)
+                   */
+                  var context;
+
+                  var translator;
+                  context = JavaScript.getExpression(func, env);
+
+                  /*
+                   * Evaluate any independent subexpressions and turn them into
+                   * literals.
+                   */
+                  context.expression = PartialEvaluator.evaluate(context);
+
+                  /*
+                   * Convert the JavaScriptExpression tree into a QueryExpression tree
+                   */
+                  translator = new JavaScriptToQueryVisitor(context);
+                  return translator.visit(context.expression);
+              };
+          
+          
               /*
-               * Evaluate any independent subexpressions and turn them into
-               * literals.
+               * Static method to walk a projection specified as a function and
+               * determine which fields it uses.
                */
-              context.expression = PartialEvaluator.evaluate(context);
-        
-              /*
-               * Convert the JavaScriptExpression tree into a QueryExpression tree
-               */
-              translator = new JavaScriptToQueryVisitor(context);
-              return translator.visit(context.expression);
-            };
-        
-        
-            /*
-             * Static method to walk a projection specified as a function and
-             * determine which fields it uses.
-             */
-        
-            JavaScript.getProjectedFields = function(func) {
-        
-              /*
+          
+              JavaScript.getProjectedFields = func => /*
                * This currently returns an empty array which indicates all fields.
                * At some point we'll need to go through and walk the expression
                * tree for func and see exactly which fields it uses.  This is
@@ -134,73 +137,91 @@
                * probably just default to [] rather than trying to do alias
                * analysis across function calls, etc.)
                */
-              return [];
-            };
-        
-        
-            /*
-             * Turn a function and its explicitly passed environment into an
-             * expression tree
-             */
-        
-            JavaScript.getExpression = function(func, env) {
-        
+              [];
+          
+          
               /*
-               * An anonymous function isn't considered a valid program, so we'll wrap
-               * it in an assignment statement to keep the parser happy
+               * Turn a function and its explicitly passed environment into an
+               * expression tree
                */
-              var environment, expr, i, name, names, program, source, _i, _len, _ref, _ref1, _ref10, _ref11, _ref12, _ref13, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
-              source = "var _$$_stmt_$$_ = " + func + ";";
-        
-              /*
-               * Use esprima to parse the source of the function body (and have it
-               * return source locations in character ranges )
-               */
-              program = esprima.parse(source, {
-                range: true
-              });
-        
-              /*
-               * Get the expression from return statement of the function body to use
-               * as our lambda expression
-               */
-              expr = (program != null ? program.type : void 0) === 'Program' && (program != null ? (_ref = program.body) != null ? _ref.length : void 0 : void 0) === 1 && ((_ref1 = program.body[0]) != null ? _ref1.type : void 0) === 'VariableDeclaration' && ((_ref2 = program.body[0]) != null ? (_ref3 = _ref2.declarations) != null ? _ref3.length : void 0 : void 0) === 1 && ((_ref4 = program.body[0].declarations[0]) != null ? _ref4.type : void 0) === 'VariableDeclarator' && ((_ref5 = program.body[0].declarations[0]) != null ? (_ref6 = _ref5.init) != null ? _ref6.type : void 0 : void 0) === 'FunctionExpression' && ((_ref7 = program.body[0].declarations[0].init) != null ? (_ref8 = _ref7.body) != null ? _ref8.type : void 0 : void 0) === 'BlockStatement' && ((_ref9 = program.body[0].declarations[0].init.body) != null ? (_ref10 = _ref9.body) != null ? _ref10.length : void 0 : void 0) === 1 && ((_ref11 = program.body[0].declarations[0].init.body.body[0]) != null ? _ref11.type : void 0) === 'ReturnStatement' && ((_ref12 = program.body[0].declarations[0].init.body.body[0]) != null ? _ref12.argument : void 0);
-              if (!expr) {
-                throw "Expected a predicate with a single return statement, not " + func;
-              }
-        
-              /*
-               * Create the environment mqpping parameters to values
-               */
-              names = (_ref13 = program.body[0].declarations[0].init.params) != null ? _ref13.map(function(p) {
-                return p.name;
-              }) : void 0;
-              if (names.length > env.length) {
-                throw "Expected value(s) for parameter(s) " + names.slice(env.length);
-              } else if (env.length > names.length) {
-                throw "Expected parameter(s) for value(s) " + env.slice(names.length);
-              }
-              environment = {};
-              for (i = _i = 0, _len = names.length; _i < _len; i = ++_i) {
-                name = names[i];
-                environment[name] = env[i];
-              }
-              return {
-        
-                /*
-                 * Return the environment context
-                 */
-                source: source,
-                expression: expr,
-                environment: environment
+          
+              JavaScript.getExpression = (func, env) => {
+                  /*
+                   * An anonymous function isn't considered a valid program, so we'll wrap
+                   * it in an assignment statement to keep the parser happy
+                   */
+                  var environment;
+
+                  var expr;
+                  var i;
+                  var name;
+                  var names;
+                  var program;
+                  var source;
+                  var _i;
+                  var _len;
+                  var _ref;
+                  var _ref1;
+                  var _ref10;
+                  var _ref11;
+                  var _ref12;
+                  var _ref13;
+                  var _ref2;
+                  var _ref3;
+                  var _ref4;
+                  var _ref5;
+                  var _ref6;
+                  var _ref7;
+                  var _ref8;
+                  var _ref9;
+                  source = "var _$$_stmt_$$_ = " + func + ";";
+
+                  /*
+                   * Use esprima to parse the source of the function body (and have it
+                   * return source locations in character ranges )
+                   */
+                  program = esprima.parse(source, {
+                    range: true
+                  });
+
+                  /*
+                   * Get the expression from return statement of the function body to use
+                   * as our lambda expression
+                   */
+                  expr = (program != null ? program.type : void 0) === 'Program' && (program != null ? (_ref = program.body) != null ? _ref.length : void 0 : void 0) === 1 && ((_ref1 = program.body[0]) != null ? _ref1.type : void 0) === 'VariableDeclaration' && ((_ref2 = program.body[0]) != null ? (_ref3 = _ref2.declarations) != null ? _ref3.length : void 0 : void 0) === 1 && ((_ref4 = program.body[0].declarations[0]) != null ? _ref4.type : void 0) === 'VariableDeclarator' && ((_ref5 = program.body[0].declarations[0]) != null ? (_ref6 = _ref5.init) != null ? _ref6.type : void 0 : void 0) === 'FunctionExpression' && ((_ref7 = program.body[0].declarations[0].init) != null ? (_ref8 = _ref7.body) != null ? _ref8.type : void 0 : void 0) === 'BlockStatement' && ((_ref9 = program.body[0].declarations[0].init.body) != null ? (_ref10 = _ref9.body) != null ? _ref10.length : void 0 : void 0) === 1 && ((_ref11 = program.body[0].declarations[0].init.body.body[0]) != null ? _ref11.type : void 0) === 'ReturnStatement' && ((_ref12 = program.body[0].declarations[0].init.body.body[0]) != null ? _ref12.argument : void 0);
+                  if (!expr) {
+                    throw "Expected a predicate with a single return statement, not " + func;
+                  }
+
+                  /*
+                   * Create the environment mqpping parameters to values
+                   */
+                  names = (_ref13 = program.body[0].declarations[0].init.params) != null ? _ref13.map(p => p.name) : void 0;
+                  if (names.length > env.length) {
+                    throw "Expected value(s) for parameter(s) " + names.slice(env.length);
+                  } else if (env.length > names.length) {
+                    throw "Expected parameter(s) for value(s) " + env.slice(names.length);
+                  }
+                  environment = {};
+                  for (i = _i = 0, _len = names.length; _i < _len; i = ++_i) {
+                    name = names[i];
+                    environment[name] = env[i];
+                  }
+                  return {
+            
+                    /*
+                     * Return the environment context
+                     */
+                    source,
+                    expression: expr,
+                    environment
+                  };
               };
-            };
-        
-            return JavaScript;
-        
-          })();
-        
-        }).call(this);
+          
+              return JavaScript;
+          
+            }))();
+        })).call(this);
     };
 
     $__modules__.JavaScriptNodes = function (exports) {
@@ -228,1434 +249,1487 @@
         
         /* Get the base Node and Visitor classes. */
         
-        (function() {
-          var ArrayExpression, ArrayPattern, AssignmentExpression, BinaryExpression, BlockStatement, BreakStatement, CallExpression, CatchClause, ConditionalExpression, ContinueStatement, DebuggerStatement, Declaration, DoWhileStatement, EmptyStatement, Expression, ExpressionStatement, ForInStatement, ForStatement, Function, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JavaScriptNode, JavaScriptVisitor, LabeledStatement, Literal, LogicalExpression, MemberExpression, NewExpression, Node, ObjectExpression, ObjectPattern, Pattern, Program, ReturnStatement, SequenceExpression, Statement, SwitchCase, SwitchStatement, ThisExpression, ThrowStatement, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, VariableDeclarator, Visitor, WhileStatement, WithStatement, _ref,
-            __hasProp = {}.hasOwnProperty,
-            __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-        
-          _ref = require('./Node'), Node = _ref.Node, Visitor = _ref.Visitor;
-        
-        
-          /*
-           * Base node for all JavaScript nodes.
-           */
-        
-          exports.JavaScriptNode = JavaScriptNode = (function(_super) {
-            __extends(JavaScriptNode, _super);
-        
-            function JavaScriptNode() {
-              JavaScriptNode.__super__.constructor.call(this);
-            }
-        
-            return JavaScriptNode;
-        
-          })(Node);
-        
-        
-          /*
-           * Base visitor for all JavaScript nodes.
-           */
-        
-          exports.JavaScriptVisitor = JavaScriptVisitor = (function(_super) {
-            __extends(JavaScriptVisitor, _super);
-        
-            function JavaScriptVisitor() {
-              JavaScriptVisitor.__super__.constructor.call(this);
-            }
-        
-            JavaScriptVisitor.prototype.JavaScriptNode = function(node) {
+        ((() => {
+            var ArrayExpression;
+            var ArrayPattern;
+            var AssignmentExpression;
+            var BinaryExpression;
+            var BlockStatement;
+            var BreakStatement;
+            var CallExpression;
+            var CatchClause;
+            var ConditionalExpression;
+            var ContinueStatement;
+            var DebuggerStatement;
+            var Declaration;
+            var DoWhileStatement;
+            var EmptyStatement;
+            var Expression;
+            var ExpressionStatement;
+            var ForInStatement;
+            var ForStatement;
+            var Function;
+            var FunctionDeclaration;
+            var FunctionExpression;
+            var Identifier;
+            var IfStatement;
+            var JavaScriptNode;
+            var JavaScriptVisitor;
+            var LabeledStatement;
+            var Literal;
+            var LogicalExpression;
+            var MemberExpression;
+            var NewExpression;
+            var Node;
+            var ObjectExpression;
+            var ObjectPattern;
+            var Pattern;
+            var Program;
+            var ReturnStatement;
+            var SequenceExpression;
+            var Statement;
+            var SwitchCase;
+            var SwitchStatement;
+            var ThisExpression;
+            var ThrowStatement;
+            var TryStatement;
+            var UnaryExpression;
+            var UpdateExpression;
+            var VariableDeclaration;
+            var VariableDeclarator;
+            var Visitor;
+            var WhileStatement;
+            var WithStatement;
+            var _ref;
+            var __hasProp = {}.hasOwnProperty;
+            var __extends = (child, parent) => { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+            _ref = require('./Node'), Node = _ref.Node, Visitor = _ref.Visitor;
+
+
+            /*
+             * Base node for all JavaScript nodes.
+             */
+
+            exports.JavaScriptNode = JavaScriptNode = ((_super => {
+              __extends(JavaScriptNode, _super);
+          
+              function JavaScriptNode() {
+                JavaScriptNode.__super__.constructor.call(this);
+              }
+          
+              return JavaScriptNode;
+          
+            }))(Node);
+
+
+            /*
+             * Base visitor for all JavaScript nodes.
+             */
+
+            exports.JavaScriptVisitor = JavaScriptVisitor = ((_super => {
+              __extends(JavaScriptVisitor, _super);
+          
+              function JavaScriptVisitor() {
+                JavaScriptVisitor.__super__.constructor.call(this);
+              }
+          
+              JavaScriptVisitor.prototype.JavaScriptNode = node => node;
+          
+              return JavaScriptVisitor;
+          
+            }))(Visitor);
+
+
+            /*
+             * A complete program source tree.
+             */
+
+            exports.Program = Program = ((_super => {
+              __extends(Program, _super);
+          
+          
+              /*
+               * @elements: [Statement]
+               */
+          
+              function Program(elements) {
+                this.elements = elements;
+                Program.__super__.constructor.call(this);
+              }
+          
+              return Program;
+          
+            }))(JavaScriptNode);
+
+            JavaScriptVisitor.prototype.Program = function(node) {
+              node = this.JavaScriptNode(node);
+              node.elements = this.visit(node.elements);
               return node;
             };
-        
-            return JavaScriptVisitor;
-        
-          })(Visitor);
-        
-        
-          /*
-           * A complete program source tree.
-           */
-        
-          exports.Program = Program = (function(_super) {
-            __extends(Program, _super);
-        
-        
+
+
             /*
-             * @elements: [Statement]
+             * A function declaration or expression. The body of the function is a  block
+             * statement.
              */
-        
-            function Program(elements) {
-              this.elements = elements;
-              Program.__super__.constructor.call(this);
-            }
-        
-            return Program;
-        
-          })(JavaScriptNode);
-        
-          JavaScriptVisitor.prototype.Program = function(node) {
-            node = this.JavaScriptNode(node);
-            node.elements = this.visit(node.elements);
-            return node;
-          };
-        
-        
-          /*
-           * A function declaration or expression. The body of the function is a  block
-           * statement.
-           */
-        
-          exports.Function = Function = (function(_super) {
-            __extends(Function, _super);
-        
-        
-            /*
-             * @id: Identifier | null
-             * @params: [Pattern]
-             * @body: BlockStatement
-             */
-        
-            function Function(id, params, body) {
-              this.id = id;
-              this.params = params;
-              this.body = body;
-              Function.__super__.constructor.call(this);
-            }
-        
-            return Function;
-        
-          })(JavaScriptNode);
-        
-          JavaScriptVisitor.prototype.Function = function(node) {
-            node = this.JavaScriptNode(node);
-            node.id = this.visit(node.id);
-            node.params = this.visit(node.params);
-            node.body = this.visit(node.body);
-            return node;
-          };
-        
-        
-          /*
-           * Any statement.
-           */
-        
-          exports.Statement = Statement = (function(_super) {
-            __extends(Statement, _super);
-        
-            function Statement() {
-              Statement.__super__.constructor.call(this);
-            }
-        
-            return Statement;
-        
-          })(JavaScriptNode);
-        
-          JavaScriptVisitor.prototype.Statement = function(node) {
-            node = this.JavaScriptNode(node);
-            return node;
-          };
-        
-        
-          /*
-           * An empty statement, i.e., a solitary semicolon.
-           */
-        
-          exports.EmptyStatement = EmptyStatement = (function(_super) {
-            __extends(EmptyStatement, _super);
-        
-            function EmptyStatement() {
-              EmptyStatement.__super__.constructor.call(this);
-            }
-        
-            return EmptyStatement;
-        
-          })(JavaScriptNode);
-        
-          JavaScriptVisitor.prototype.EmptyStatement = function(node) {
-            node = this.JavaScriptNode(node);
-            return node;
-          };
-        
-        
-          /*
-           * A block statement, i.e., a sequence of statements surrounded by braces.
-           */
-        
-          exports.BlockStatement = BlockStatement = (function(_super) {
-            __extends(BlockStatement, _super);
-        
-        
-            /*
-             * @body: [Statement]
-             */
-        
-            function BlockStatement(body) {
-              this.body = body;
-              BlockStatement.__super__.constructor.call(this);
-            }
-        
-            return BlockStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.BlockStatement = function(node) {
-            node = this.Statement(node);
-            node.body = this.visit(node.body);
-            return node;
-          };
-        
-        
-          /*
-           * An expression statement, i.e., a statement consisting of a single expression.
-           */
-        
-          exports.ExpressionStatement = ExpressionStatement = (function(_super) {
-            __extends(ExpressionStatement, _super);
-        
-            function ExpressionStatement() {
-              ExpressionStatement.__super__.constructor.call(this);
-            }
-        
-            return ExpressionStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.ExpressionStatement = function(node) {
-            node = this.Statement(node);
-            return node;
-          };
-        
-        
-          /*
-           * An if statement.
-           */
-        
-          exports.IfStatement = IfStatement = (function(_super) {
-            __extends(IfStatement, _super);
-        
-        
-            /*
-             * @test: Expression
-             * @consequent: Statement
-             * @alternate: Statement | null
-             */
-        
-            function IfStatement(test, consequent, alternate) {
-              this.test = test;
-              this.consequent = consequent;
-              this.alternate = alternate;
-              IfStatement.__super__.constructor.call(this);
-            }
-        
-            return IfStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.IfStatement = function(node) {
-            node = this.Statement(node);
-            node.test = this.visit(node.test);
-            node.consequent = this.visit(node.consequent);
-            node.alternate = this.visit(node.alternate);
-            return node;
-          };
-        
-        
-          /*
-           * A labeled statement, i.e., a statement prefixed by a break/continue label.
-           */
-        
-          exports.LabeledStatement = LabeledStatement = (function(_super) {
-            __extends(LabeledStatement, _super);
-        
-        
-            /*
-             * @label: Identifier
-             * @body: Statement
-             */
-        
-            function LabeledStatement(label, body) {
-              this.label = label;
-              this.body = body;
-              LabeledStatement.__super__.constructor.call(this);
-            }
-        
-            return LabeledStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.LabeledStatement = function(node) {
-            node = this.Statement(node);
-            node.label = this.visit(node.label);
-            node.body = this.visit(node.body);
-            return node;
-          };
-        
-        
-          /*
-           * A break statement.
-           */
-        
-          exports.BreakStatement = BreakStatement = (function(_super) {
-            __extends(BreakStatement, _super);
-        
-        
-            /*
-             * @label: Identifier | null
-             */
-        
-            function BreakStatement(label) {
-              this.label = label;
-              BreakStatement.__super__.constructor.call(this);
-            }
-        
-            return BreakStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.BreakStatement = function(node) {
-            node = this.Statement(node);
-            node.label = this.visit(node.label);
-            return node;
-          };
-        
-        
-          /*
-          A continue statement.
-           */
-        
-          exports.ContinueStatement = ContinueStatement = (function(_super) {
-            __extends(ContinueStatement, _super);
-        
-        
-            /*
-            @label: Identifier | null
-             */
-        
-            function ContinueStatement(label) {
-              this.label = label;
-              ContinueStatement.__super__.constructor.call(this);
-            }
-        
-            return ContinueStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.ContinueStatement = function(node) {
-            node = this.Statement(node);
-            node.label = this.visit(node.label);
-            return node;
-          };
-        
-        
-          /*
-           * A with statement.
-           */
-        
-          exports.WithStatement = WithStatement = (function(_super) {
-            __extends(WithStatement, _super);
-        
-        
-            /*
-             * @object: Expression
-             * @body: Statement
-             */
-        
-            function WithStatement(object, body) {
-              this.object = object;
-              this.body = body;
-              WithStatement.__super__.constructor.call(this);
-            }
-        
-            return WithStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.WithStatement = function(node) {
-            node = this.Statement(node);
-            node.object = this.visit(node.object);
-            node.body = this.visit(node.body);
-            return node;
-          };
-        
-        
-          /*
-           * A switch statement.
-           */
-        
-          exports.SwitchStatement = SwitchStatement = (function(_super) {
-            __extends(SwitchStatement, _super);
-        
-        
-            /*
-             * @discriminant: Expression
-             * @cases: [SwitchCase]
-             */
-        
-            function SwitchStatement(discriminant, cases) {
-              this.discriminant = discriminant;
-              this.cases = cases;
-              SwitchStatement.__super__.constructor.call(this);
-            }
-        
-            return SwitchStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.SwitchStatement = function(node) {
-            node = this.Statement(node);
-            node.discriminant = this.visit(node.discriminant);
-            node.cases = this.visit(node.cases);
-            return node;
-          };
-        
-        
-          /*
-           * A return statement.
-           */
-        
-          exports.ReturnStatement = ReturnStatement = (function(_super) {
-            __extends(ReturnStatement, _super);
-        
-        
-            /*
-             * @argument: Expression | null
-             */
-        
-            function ReturnStatement(argument) {
-              this.argument = argument;
-              ReturnStatement.__super__.constructor.call(this);
-            }
-        
-            return ReturnStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.ReturnStatement = function(node) {
-            node = this.Statement(node);
-            node.argument = this.visit(node.argument);
-            return node;
-          };
-        
-        
-          /*
-           * A throw statement.
-           */
-        
-          exports.ThrowStatement = ThrowStatement = (function(_super) {
-            __extends(ThrowStatement, _super);
-        
-        
-            /*
-             * @argument: Expression
-             */
-        
-            function ThrowStatement(argument) {
-              this.argument = argument;
-              ThrowStatement.__super__.constructor.call(this);
-            }
-        
-            return ThrowStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.ThrowStatement = function(node) {
-            node = this.Statement(node);
-            node.argument = this.visit(node.argument);
-            return node;
-          };
-        
-        
-          /*
-           * A try statement.
-           */
-        
-          exports.TryStatement = TryStatement = (function(_super) {
-            __extends(TryStatement, _super);
-        
-        
-            /*
-             * @block: BlockStatement
-             * @handlers: [CatchClause]
-             * @finalizer: BlockStatement | null
-             */
-        
-            function TryStatement(block, handlers, finalizer) {
-              this.block = block;
-              this.handlers = handlers;
-              this.finalizer = finalizer;
-              TryStatement.__super__.constructor.call(this);
-            }
-        
-            return TryStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.TryStatement = function(node) {
-            node = this.Statement(node);
-            node.block = this.visit(node.block);
-            node.handlers = this.visit(node.handlers);
-            node.finalizer = this.visit(node.finalizer);
-            return node;
-          };
-        
-        
-          /*
-           * A while statement.
-           */
-        
-          exports.WhileStatement = WhileStatement = (function(_super) {
-            __extends(WhileStatement, _super);
-        
-        
-            /*
-             * @test: Expression
-             * @body: Statement
-             */
-        
-            function WhileStatement(test, body) {
-              this.test = test;
-              this.body = body;
-              WhileStatement.__super__.constructor.call(this);
-            }
-        
-            return WhileStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.WhileStatement = function(node) {
-            node = this.Statement(node);
-            node.test = this.visit(node.test);
-            node.body = this.visit(node.body);
-            return node;
-          };
-        
-        
-          /*
-           * A do/while statement.
-           */
-        
-          exports.DoWhileStatement = DoWhileStatement = (function(_super) {
-            __extends(DoWhileStatement, _super);
-        
-        
-            /*
-             * @body: Statement
-             * @test: Expression
-             */
-        
-            function DoWhileStatement(body, test) {
-              this.body = body;
-              this.test = test;
-              DoWhileStatement.__super__.constructor.call(this);
-            }
-        
-            return DoWhileStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.DoWhileStatement = function(node) {
-            node = this.Statement(node);
-            node.body = this.visit(node.body);
-            node.test = this.visit(node.test);
-            return node;
-          };
-        
-        
-          /*
-           * A for statement.
-           */
-        
-          exports.ForStatement = ForStatement = (function(_super) {
-            __extends(ForStatement, _super);
-        
-        
-            /*
-             * @init: VariableDeclaration | Expression | null
-             * @test: Expression | null
-             * @update: Expression | null
-             * @body: Statement
-             */
-        
-            function ForStatement(init, test, update, body) {
-              this.init = init;
-              this.test = test;
-              this.update = update;
-              this.body = body;
-              ForStatement.__super__.constructor.call(this);
-            }
-        
-            return ForStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.ForStatement = function(node) {
-            node = this.Statement(node);
-            node.init = this.visit(node.init);
-            node.test = this.visit(node.test);
-            node.update = this.visit(node.update);
-            node.body = this.visit(node.body);
-            return node;
-          };
-        
-        
-          /*
-           * A for/in statement, or, if each is true, a for each/in statement.
-           */
-        
-          exports.ForInStatement = ForInStatement = (function(_super) {
-            __extends(ForInStatement, _super);
-        
-        
-            /*
-             * @left: VariableDeclaration |  Expression
-             * @right: Expression
-             * @body: Statement
-             */
-        
-            function ForInStatement(left, right, body) {
-              this.left = left;
-              this.right = right;
-              this.body = body;
-              ForInStatement.__super__.constructor.call(this);
-            }
-        
-            return ForInStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.ForInStatement = function(node) {
-            node = this.Statement(node);
-            node.left = this.visit(node.left);
-            node.right = this.visit(node.right);
-            node.body = this.visit(node.body);
-            return node;
-          };
-        
-        
-          /*
-           * A debugger statement.
-           */
-        
-          exports.DebuggerStatement = DebuggerStatement = (function(_super) {
-            __extends(DebuggerStatement, _super);
-        
-            function DebuggerStatement() {
-              DebuggerStatement.__super__.constructor.call(this);
-            }
-        
-            return DebuggerStatement;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.DebuggerStatement = function(node) {
-            node = this.Statement(node);
-            return node;
-          };
-        
-        
-          /*
-           * Any declaration node. Note that declarations are considered statements; this
-           * is because declarations can appear in any statement context in the language.
-           */
-        
-          exports.Declaration = Declaration = (function(_super) {
-            __extends(Declaration, _super);
-        
-            function Declaration() {
-              Declaration.__super__.constructor.call(this);
-            }
-        
-            return Declaration;
-        
-          })(Statement);
-        
-          JavaScriptVisitor.prototype.Declaration = function(node) {
-            node = this.Statement(node);
-            return node;
-          };
-        
-        
-          /*
-           * A function declaration.  Note: The id field cannot be null.
-           */
-        
-          exports.FunctionDeclaration = FunctionDeclaration = (function(_super) {
-            __extends(FunctionDeclaration, _super);
-        
-        
-            /*
-             * @id: Identifier
-             * @params: [ Pattern ]
-             * @body: BlockStatement | Expression
-             */
-        
-            function FunctionDeclaration(id, params, body) {
-              this.id = id;
-              this.params = params;
-              this.body = body;
-              FunctionDeclaration.__super__.constructor.call(this);
-            }
-        
-            return FunctionDeclaration;
-        
-          })(Declaration);
-        
-          JavaScriptVisitor.prototype.FunctionDeclaration = function(node) {
-            node = this.Declaration(node);
-            node.id = this.visit(node.id);
-            node.params = this.visit(node.params);
-            node.body = this.visit(node.body);
-            return node;
-          };
-        
-        
-          /*
-           * A variable declaration, via one of var, let, or const.
-           */
-        
-          exports.VariableDeclaration = VariableDeclaration = (function(_super) {
-            __extends(VariableDeclaration, _super);
-        
-        
-            /*
-             * @declarations: [ VariableDeclarator ]
-             * @kind: "var"
-             */
-        
-            function VariableDeclaration(declarations, kind) {
-              this.declarations = declarations;
-              this.kind = kind;
-              VariableDeclaration.__super__.constructor.call(this);
-            }
-        
-            return VariableDeclaration;
-        
-          })(Declaration);
-        
-          JavaScriptVisitor.prototype.VariableDeclaration = function(node) {
-            node = this.Declaration(node);
-            node.declarations = this.visit(node.declarations);
-            return node;
-          };
-        
-        
-          /*
-           * A variable declarator.  Note: The id field cannot be null.
-           */
-        
-          exports.VariableDeclarator = VariableDeclarator = (function(_super) {
-            __extends(VariableDeclarator, _super);
-        
-        
-            /*
-             * @id: Pattern
-             * @init: Expression | null
-             */
-        
-            function VariableDeclarator(id, init) {
-              this.id = id;
-              this.init = init;
-              VariableDeclarator.__super__.constructor.call(this);
-            }
-        
-            return VariableDeclarator;
-        
-          })(JavaScriptNode);
-        
-          JavaScriptVisitor.prototype.VariableDeclarator = function(node) {
-            node = this.JavaScriptNode(node);
-            node.id = this.visit(node.id);
-            node.init = this.visit(node.init);
-            return node;
-          };
-        
-        
-          /*
-           * Any expression node. Since the left-hand side of an assignment may be any
-           * expression in general, an expression can also be a pattern.
-           */
-        
-          exports.Expression = Expression = (function(_super) {
-            __extends(Expression, _super);
-        
-            function Expression() {
-              return Expression.__super__.constructor.apply(this, arguments);
-            }
-        
-            Expression.prototype.constuctor = function() {
-              return Expression.__super__.constuctor.call(this);
+
+            exports.Function = Function = ((_super => {
+              __extends(Function, _super);
+          
+          
+              /*
+               * @id: Identifier | null
+               * @params: [Pattern]
+               * @body: BlockStatement
+               */
+          
+              function Function(id, params, body) {
+                this.id = id;
+                this.params = params;
+                this.body = body;
+                Function.__super__.constructor.call(this);
+              }
+          
+              return Function;
+          
+            }))(JavaScriptNode);
+
+            JavaScriptVisitor.prototype.Function = function(node) {
+              node = this.JavaScriptNode(node);
+              node.id = this.visit(node.id);
+              node.params = this.visit(node.params);
+              node.body = this.visit(node.body);
+              return node;
             };
-        
-            return Expression;
-        
-          })(JavaScriptNode);
-        
-          JavaScriptVisitor.prototype.Expression = function(node) {
-            node = this.JavaScriptNode(node);
-            return node;
-          };
-        
-        
-          /*
-           * A this expression.
-           */
-        
-          exports.ThisExpression = ThisExpression = (function(_super) {
-            __extends(ThisExpression, _super);
-        
-            function ThisExpression() {
-              ThisExpression.__super__.constructor.call(this);
-            }
-        
-            return ThisExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.ThisExpression = function(node) {
-            node = this.Expression(node);
-            return node;
-          };
-        
-        
-          /*
-           * An array expression.
-           */
-        
-          exports.ArrayExpression = ArrayExpression = (function(_super) {
-            __extends(ArrayExpression, _super);
-        
-        
+
+
             /*
-             * @elements: [ Expression | null ]
+             * Any statement.
              */
-        
-            function ArrayExpression(elements) {
-              this.elements = elements;
-              ArrayExpression.__super__.constructor.call(this);
-            }
-        
-            return ArrayExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.ArrayExpression = function(node) {
-            node = this.Expression(node);
-            node.elements = this.visit(node.elements);
-            return node;
-          };
-        
-        
-          /*
-           * An object expression. A literal property in an object expression can have
-           * either a string or number as its value.  Ordinary property initializers have a
-           * kind value "init"; getters and setters have the kind values "get" and "set",
-           * respectively.
-           */
-        
-          exports.ObjectExpression = ObjectExpression = (function(_super) {
-            __extends(ObjectExpression, _super);
-        
-        
+
+            exports.Statement = Statement = ((_super => {
+              __extends(Statement, _super);
+          
+              function Statement() {
+                Statement.__super__.constructor.call(this);
+              }
+          
+              return Statement;
+          
+            }))(JavaScriptNode);
+
+            JavaScriptVisitor.prototype.Statement = function(node) {
+              node = this.JavaScriptNode(node);
+              return node;
+            };
+
+
             /*
-             * @properties: [ { key: Literal | Identifier,
-             *                 value: Expression,
-             *                 kind: "init" | "get" | "set" } ];
+             * An empty statement, i.e., a solitary semicolon.
              */
-        
-            function ObjectExpression(properties) {
-              this.properties = properties;
-              ObjectExpression.__super__.constructor.call(this);
-            }
-        
-            return ObjectExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.ObjectExpression = function(node) {
-            var setter, _i, _len, _ref1;
-            node = this.Expression(node);
-            _ref1 = node.properties;
-            for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-              setter = _ref1[_i];
-              setter.key = this.visit(setter.key);
-              setter.value = this.visit(setter.value);
-            }
-            return node;
-          };
-        
-        
-          /*
-           * A function expression.
-           */
-        
-          exports.FunctionExpression = FunctionExpression = (function(_super) {
-            __extends(FunctionExpression, _super);
-        
-        
+
+            exports.EmptyStatement = EmptyStatement = ((_super => {
+              __extends(EmptyStatement, _super);
+          
+              function EmptyStatement() {
+                EmptyStatement.__super__.constructor.call(this);
+              }
+          
+              return EmptyStatement;
+          
+            }))(JavaScriptNode);
+
+            JavaScriptVisitor.prototype.EmptyStatement = function(node) {
+              node = this.JavaScriptNode(node);
+              return node;
+            };
+
+
             /*
-             * @id: Identifier | null
-             * @params: [ Pattern ]
-             * @body: BlockStatement | Expression
+             * A block statement, i.e., a sequence of statements surrounded by braces.
              */
-        
-            function FunctionExpression(id, params, body) {
-              this.id = id;
-              this.params = params;
-              this.body = body;
-              FunctionExpression.__super__.constructor.call(this);
-            }
-        
-            return FunctionExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.FunctionExpression = function(node) {
-            node = this.Expression(node);
-            node.id = this.visit(node.id);
-            node.params = this.visit(node.params);
-            node.body = this.visit(node.body);
-            return node;
-          };
-        
-        
-          /*
-           * A sequence expression, i.e., a comma-separated sequence of expressions.
-           */
-        
-          exports.SequenceExpression = SequenceExpression = (function(_super) {
-            __extends(SequenceExpression, _super);
-        
-        
+
+            exports.BlockStatement = BlockStatement = ((_super => {
+              __extends(BlockStatement, _super);
+          
+          
+              /*
+               * @body: [Statement]
+               */
+          
+              function BlockStatement(body) {
+                this.body = body;
+                BlockStatement.__super__.constructor.call(this);
+              }
+          
+              return BlockStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.BlockStatement = function(node) {
+              node = this.Statement(node);
+              node.body = this.visit(node.body);
+              return node;
+            };
+
+
             /*
-             * @expressions: [ Expression ]
+             * An expression statement, i.e., a statement consisting of a single expression.
              */
-        
-            function SequenceExpression(expressions) {
-              this.expressions = expressions;
-              SequenceExpression.__super__.constructor.call(this);
-            }
-        
-            return SequenceExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.SequenceExpression = function(node) {
-            node = this.Expression(node);
-            node.expressions = this.visit(node.expressions);
-            return node;
-          };
-        
-        
-          /*
-           * A unary operator expression.
-           */
-        
-          exports.UnaryExpression = UnaryExpression = (function(_super) {
-            __extends(UnaryExpression, _super);
-        
-        
+
+            exports.ExpressionStatement = ExpressionStatement = ((_super => {
+              __extends(ExpressionStatement, _super);
+          
+              function ExpressionStatement() {
+                ExpressionStatement.__super__.constructor.call(this);
+              }
+          
+              return ExpressionStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.ExpressionStatement = function(node) {
+              node = this.Statement(node);
+              return node;
+            };
+
+
             /*
-             * @operator: "-" | "+" | "!" | "~" | "typeof" | "void" | "delete"
-             * @prefix: boolean
-             * @argument: Expression
+             * An if statement.
              */
-        
-            function UnaryExpression(operator, prefix, argument) {
-              this.operator = operator;
-              this.prefix = prefix;
-              this.argument = argument;
-              UnaryExpression.__super__.constructor.call(this);
-            }
-        
-            return UnaryExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.UnaryExpression = function(node) {
-            node = this.Expression(node);
-            node.argument = this.visit(node.argument);
-            return node;
-          };
-        
-        
-          /*
-           * A binary operator expression.
-           */
-        
-          exports.BinaryExpression = BinaryExpression = (function(_super) {
-            __extends(BinaryExpression, _super);
-        
-        
+
+            exports.IfStatement = IfStatement = ((_super => {
+              __extends(IfStatement, _super);
+          
+          
+              /*
+               * @test: Expression
+               * @consequent: Statement
+               * @alternate: Statement | null
+               */
+          
+              function IfStatement(test, consequent, alternate) {
+                this.test = test;
+                this.consequent = consequent;
+                this.alternate = alternate;
+                IfStatement.__super__.constructor.call(this);
+              }
+          
+              return IfStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.IfStatement = function(node) {
+              node = this.Statement(node);
+              node.test = this.visit(node.test);
+              node.consequent = this.visit(node.consequent);
+              node.alternate = this.visit(node.alternate);
+              return node;
+            };
+
+
             /*
-             * @operator: "==" | "!=" | "===" | "!==" | "<" | "<=" | ">" | ">="
-             *     | "<<" | ">>" | ">>>" | "+" | "-" | "*" | "/" | "%"
-             *     | "|" | "&" | "^" | "in" | "instanceof" | ".."
-             * @left: Expression
-             * @right: Expression
+             * A labeled statement, i.e., a statement prefixed by a break/continue label.
              */
-        
-            function BinaryExpression(operator, left, right) {
-              this.operator = operator;
-              this.left = left;
-              this.right = right;
-              BinaryExpression.__super__.constructor.call(this);
-            }
-        
-            return BinaryExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.BinaryExpression = function(node) {
-            node = this.Expression(node);
-            node.left = this.visit(node.left);
-            node.right = this.visit(node.right);
-            return node;
-          };
-        
-        
-          /*
-           * An assignment operator expression.
-           */
-        
-          exports.AssignmentExpression = AssignmentExpression = (function(_super) {
-            __extends(AssignmentExpression, _super);
-        
-        
+
+            exports.LabeledStatement = LabeledStatement = ((_super => {
+              __extends(LabeledStatement, _super);
+          
+          
+              /*
+               * @label: Identifier
+               * @body: Statement
+               */
+          
+              function LabeledStatement(label, body) {
+                this.label = label;
+                this.body = body;
+                LabeledStatement.__super__.constructor.call(this);
+              }
+          
+              return LabeledStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.LabeledStatement = function(node) {
+              node = this.Statement(node);
+              node.label = this.visit(node.label);
+              node.body = this.visit(node.body);
+              return node;
+            };
+
+
             /*
-             * @operator: "=" | "+=" | "-=" | "*=" | "/=" | "%="
-             *     | "<<=" | ">>=" | ">>>=" | "|=" | "^=" | "&=";
-             * @left: Expression
-             * @right: Expression
+             * A break statement.
              */
-        
-            function AssignmentExpression(operator, left, right) {
-              this.operator = operator;
-              this.left = left;
-              this.right = right;
-              AssignmentExpression.__super__.constructor.call(this);
-            }
-        
-            return AssignmentExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.AssignmentExpression = function(node) {
-            node = this.Expression(node);
-            node.left = this.visit(node.left);
-            node.right = this.visit(node.right);
-            return node;
-          };
-        
-        
-          /*
-           * An update (increment or decrement) operator expression.
-           */
-        
-          exports.UpdateExpression = UpdateExpression = (function(_super) {
-            __extends(UpdateExpression, _super);
-        
-        
+
+            exports.BreakStatement = BreakStatement = ((_super => {
+              __extends(BreakStatement, _super);
+          
+          
+              /*
+               * @label: Identifier | null
+               */
+          
+              function BreakStatement(label) {
+                this.label = label;
+                BreakStatement.__super__.constructor.call(this);
+              }
+          
+              return BreakStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.BreakStatement = function(node) {
+              node = this.Statement(node);
+              node.label = this.visit(node.label);
+              return node;
+            };
+
+
             /*
-             * @operator: "++" | "--"
-             * @argument: Expression
-             * @prefix: boolean
+            A continue statement.
              */
-        
-            function UpdateExpression(operator, argument, prefix) {
-              this.operator = operator;
-              this.argument = argument;
-              this.prefix = prefix;
-              UpdateExpression.__super__.constructor.call(this);
-            }
-        
-            return UpdateExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.UpdateExpression = function(node) {
-            node = this.Expression(node);
-            node.argument = this.visit(node.argument);
-            return node;
-          };
-        
-        
-          /*
-           * A logical operator expression.
-           */
-        
-          exports.LogicalExpression = LogicalExpression = (function(_super) {
-            __extends(LogicalExpression, _super);
-        
-        
+
+            exports.ContinueStatement = ContinueStatement = ((_super => {
+              __extends(ContinueStatement, _super);
+          
+          
+              /*
+              @label: Identifier | null
+               */
+          
+              function ContinueStatement(label) {
+                this.label = label;
+                ContinueStatement.__super__.constructor.call(this);
+              }
+          
+              return ContinueStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.ContinueStatement = function(node) {
+              node = this.Statement(node);
+              node.label = this.visit(node.label);
+              return node;
+            };
+
+
             /*
-             * @operator: "||" | "&&"
-             * @left: Expression
-             * @right: Expression
+             * A with statement.
              */
-        
-            function LogicalExpression(operator, left, right) {
-              this.operator = operator;
-              this.left = left;
-              this.right = right;
-              LogicalExpression.__super__.constructor.call(this);
-            }
-        
-            return LogicalExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.LogicalExpression = function(node) {
-            node = this.Expression(node);
-            node.left = this.visit(node.left);
-            node.right = this.visit(node.right);
-            return node;
-          };
-        
-        
-          /*
-           * A conditional expression, i.e., a ternary ?/: expression.
-           */
-        
-          exports.ConditionalExpression = ConditionalExpression = (function(_super) {
-            __extends(ConditionalExpression, _super);
-        
-        
+
+            exports.WithStatement = WithStatement = ((_super => {
+              __extends(WithStatement, _super);
+          
+          
+              /*
+               * @object: Expression
+               * @body: Statement
+               */
+          
+              function WithStatement(object, body) {
+                this.object = object;
+                this.body = body;
+                WithStatement.__super__.constructor.call(this);
+              }
+          
+              return WithStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.WithStatement = function(node) {
+              node = this.Statement(node);
+              node.object = this.visit(node.object);
+              node.body = this.visit(node.body);
+              return node;
+            };
+
+
             /*
-             * @test: Expression
-             * @alternate: Expression
-             * @consequent: Expression
+             * A switch statement.
              */
-        
-            function ConditionalExpression(test, alternate, consequent) {
-              this.test = test;
-              this.alternate = alternate;
-              this.consequent = consequent;
-              ConditionalExpression.__super__.constructor.call(this);
-            }
-        
-            return ConditionalExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.ConditionalExpression = function(node) {
-            node = this.Expression(node);
-            node.test = this.visit(node.test);
-            node.alternate = this.visit(node.alternate);
-            node.consequent = this.visit(node.consequent);
-            return node;
-          };
-        
-        
-          /*
-           * A new expression.
-           */
-        
-          exports.NewExpression = NewExpression = (function(_super) {
-            __extends(NewExpression, _super);
-        
-        
+
+            exports.SwitchStatement = SwitchStatement = ((_super => {
+              __extends(SwitchStatement, _super);
+          
+          
+              /*
+               * @discriminant: Expression
+               * @cases: [SwitchCase]
+               */
+          
+              function SwitchStatement(discriminant, cases) {
+                this.discriminant = discriminant;
+                this.cases = cases;
+                SwitchStatement.__super__.constructor.call(this);
+              }
+          
+              return SwitchStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.SwitchStatement = function(node) {
+              node = this.Statement(node);
+              node.discriminant = this.visit(node.discriminant);
+              node.cases = this.visit(node.cases);
+              return node;
+            };
+
+
             /*
-             * @callee: Expression
-             * @arguments: [ Expression ] | null
+             * A return statement.
              */
-        
-            function NewExpression(callee, _arguments) {
-              this.callee = callee;
-              this["arguments"] = _arguments;
-              NewExpression.__super__.constructor.call(this);
-            }
-        
-            return NewExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.NewExpression = function(node) {
-            node = this.Expression(node);
-            node.callee = this.visit(node.callee);
-            node["arguments"] = this.visit(node["arguments"]);
-            return node;
-          };
-        
-        
-          /*
-           * A function or method call expression.
-           */
-        
-          exports.CallExpression = CallExpression = (function(_super) {
-            __extends(CallExpression, _super);
-        
-        
+
+            exports.ReturnStatement = ReturnStatement = ((_super => {
+              __extends(ReturnStatement, _super);
+          
+          
+              /*
+               * @argument: Expression | null
+               */
+          
+              function ReturnStatement(argument) {
+                this.argument = argument;
+                ReturnStatement.__super__.constructor.call(this);
+              }
+          
+              return ReturnStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.ReturnStatement = function(node) {
+              node = this.Statement(node);
+              node.argument = this.visit(node.argument);
+              return node;
+            };
+
+
             /*
-             * @callee: Expression
-             * @arguments: [ Expression ]
+             * A throw statement.
              */
-        
-            function CallExpression(callee, _arguments) {
-              this.callee = callee;
-              this["arguments"] = _arguments;
-              CallExpression.__super__.constructor.call(this);
-            }
-        
-            return CallExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.CallExpression = function(node) {
-            node = this.Expression(node);
-            node.callee = this.visit(node.callee);
-            node["arguments"] = this.visit(node["arguments"]);
-            return node;
-          };
-        
-        
-          /*
-           * A member expression. If computed === true, the node corresponds to a computed
-           * e1[e2] expression and property is an Expression. If computed === false, the
-           * node corresponds to a static e1.x expression and property is an Identifier.
-           */
-        
-          exports.MemberExpression = MemberExpression = (function(_super) {
-            __extends(MemberExpression, _super);
-        
-        
+
+            exports.ThrowStatement = ThrowStatement = ((_super => {
+              __extends(ThrowStatement, _super);
+          
+          
+              /*
+               * @argument: Expression
+               */
+          
+              function ThrowStatement(argument) {
+                this.argument = argument;
+                ThrowStatement.__super__.constructor.call(this);
+              }
+          
+              return ThrowStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.ThrowStatement = function(node) {
+              node = this.Statement(node);
+              node.argument = this.visit(node.argument);
+              return node;
+            };
+
+
             /*
-             * @object: Expression
-             * @property: Identifier | Expression
-             * @computed : boolean
+             * A try statement.
              */
-        
-            function MemberExpression(object, property, computed) {
-              this.object = object;
-              this.property = property;
-              this.computed = computed;
-              MemberExpression.__super__.constructor.call(this);
-            }
-        
-            return MemberExpression;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.MemberExpression = function(node) {
-            node = this.Expression(node);
-            node.object = this.visit(node.object);
-            node.property = this.visit(node.property);
-            return node;
-          };
-        
-        
-          /*
-           * JavaScript 1.7 introduced destructuring assignment and binding forms.  All
-           * binding forms (such as function parameters, variable declarations, and catch
-           * block headers), accept array and object destructuring patterns in addition to
-           * plain identifiers. The left-hand sides of assignment expressions can be
-           * arbitrary expressions, but in the case where the expression is an object or
-           * array literal, it is interpreted by SpiderMonkey as a destructuring pattern.
-           *
-           * Since the left-hand side of an assignment can in general be any expression, in
-           * an assignment context, a pattern can be any expression. In binding positions
-           * (such as function parameters, variable declarations, and catch headers),
-           * patterns can only be identifiers in the base case, not arbitrary expressions.
-           */
-        
-          exports.Pattern = Pattern = (function(_super) {
-            __extends(Pattern, _super);
-        
-            function Pattern() {
-              Pattern.__super__.constructor.call(this);
-            }
-        
-            return Pattern;
-        
-          })(JavaScriptNode);
-        
-          JavaScriptVisitor.prototype.Pattern = function(node) {
-            node = this.JavaScriptNode(node);
-            return node;
-          };
-        
-        
-          /*
-           * An object-destructuring pattern. A literal property in an object pattern can
-           * have either a string or number as its value.
-           */
-        
-          exports.ObjectPattern = ObjectPattern = (function(_super) {
-            __extends(ObjectPattern, _super);
-        
-        
+
+            exports.TryStatement = TryStatement = ((_super => {
+              __extends(TryStatement, _super);
+          
+          
+              /*
+               * @block: BlockStatement
+               * @handlers: [CatchClause]
+               * @finalizer: BlockStatement | null
+               */
+          
+              function TryStatement(block, handlers, finalizer) {
+                this.block = block;
+                this.handlers = handlers;
+                this.finalizer = finalizer;
+                TryStatement.__super__.constructor.call(this);
+              }
+          
+              return TryStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.TryStatement = function(node) {
+              node = this.Statement(node);
+              node.block = this.visit(node.block);
+              node.handlers = this.visit(node.handlers);
+              node.finalizer = this.visit(node.finalizer);
+              return node;
+            };
+
+
             /*
-             * @properties: [ { key: Literal | Identifier, value: Pattern } ]
+             * A while statement.
              */
-        
-            function ObjectPattern(properties) {
-              this.properties = properties;
-              ObjectPattern.__super__.constructor.call(this);
-            }
-        
-            return ObjectPattern;
-        
-          })(Pattern);
-        
-          JavaScriptVisitor.prototype.ObjectPattern = function(node) {
-            var setter, _i, _len, _ref1;
-            node = this.Pattern(node);
-            _ref1 = node.properties;
-            for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-              setter = _ref1[_i];
-              setter.key = this.visit(setter.key);
-              setter.value = this.visit(setter.value);
-            }
-            return node;
-          };
-        
-        
-          /*
-           * An array-destructuring pattern.
-           */
-        
-          exports.ArrayPattern = ArrayPattern = (function(_super) {
-            __extends(ArrayPattern, _super);
-        
-        
+
+            exports.WhileStatement = WhileStatement = ((_super => {
+              __extends(WhileStatement, _super);
+          
+          
+              /*
+               * @test: Expression
+               * @body: Statement
+               */
+          
+              function WhileStatement(test, body) {
+                this.test = test;
+                this.body = body;
+                WhileStatement.__super__.constructor.call(this);
+              }
+          
+              return WhileStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.WhileStatement = function(node) {
+              node = this.Statement(node);
+              node.test = this.visit(node.test);
+              node.body = this.visit(node.body);
+              return node;
+            };
+
+
             /*
-             * @elements: [ Pattern | null ]
+             * A do/while statement.
              */
-        
-            function ArrayPattern(elements) {
-              this.elements = elements;
-              ArrayPattern.__super__.constructor.call(this);
-            }
-        
-            return ArrayPattern;
-        
-          })(Pattern);
-        
-          JavaScriptVisitor.prototype.ArrayPattern = function(node) {
-            node = this.Pattern(node);
-            node.elements = this.visit(node.elements);
-            return node;
-          };
-        
-        
-          /*
-           * A case (if test is an Expression) or default (if test === null) clause in the
-           * body of a switch statement.
-           */
-        
-          exports.SwitchCase = SwitchCase = (function(_super) {
-            __extends(SwitchCase, _super);
-        
-        
+
+            exports.DoWhileStatement = DoWhileStatement = ((_super => {
+              __extends(DoWhileStatement, _super);
+          
+          
+              /*
+               * @body: Statement
+               * @test: Expression
+               */
+          
+              function DoWhileStatement(body, test) {
+                this.body = body;
+                this.test = test;
+                DoWhileStatement.__super__.constructor.call(this);
+              }
+          
+              return DoWhileStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.DoWhileStatement = function(node) {
+              node = this.Statement(node);
+              node.body = this.visit(node.body);
+              node.test = this.visit(node.test);
+              return node;
+            };
+
+
             /*
-             * @test: Expression | null
-             * @consequent: [ Statement ]
+             * A for statement.
              */
-        
-            function SwitchCase(test, consequent) {
-              this.test = test;
-              this.consequent = consequent;
-              SwitchCase.__super__.constructor.call(this);
-            }
-        
-            return SwitchCase;
-        
-          })(JavaScriptNode);
-        
-          JavaScriptVisitor.prototype.SwitchCase = function(node) {
-            node = this.JavaScriptNode(node);
-            node.test = this.visit(node.test);
-            node.consequent = this.visit(node.consequent);
-            return node;
-          };
-        
-        
-          /*
-           * A catch clause following a try block. The optional guard property corresponds
-           * to the optional expression guard on the bound variable.
-           */
-        
-          exports.CatchClause = CatchClause = (function(_super) {
-            __extends(CatchClause, _super);
-        
-        
+
+            exports.ForStatement = ForStatement = ((_super => {
+              __extends(ForStatement, _super);
+          
+          
+              /*
+               * @init: VariableDeclaration | Expression | null
+               * @test: Expression | null
+               * @update: Expression | null
+               * @body: Statement
+               */
+          
+              function ForStatement(init, test, update, body) {
+                this.init = init;
+                this.test = test;
+                this.update = update;
+                this.body = body;
+                ForStatement.__super__.constructor.call(this);
+              }
+          
+              return ForStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.ForStatement = function(node) {
+              node = this.Statement(node);
+              node.init = this.visit(node.init);
+              node.test = this.visit(node.test);
+              node.update = this.visit(node.update);
+              node.body = this.visit(node.body);
+              return node;
+            };
+
+
             /*
-             * @param: Pattern
-             * @body: BlockStatement
+             * A for/in statement, or, if each is true, a for each/in statement.
              */
-        
-            function CatchClause(param, body) {
-              this.param = param;
-              this.body = body;
-              CatchClause.__super__.constructor.call(this);
-            }
-        
-            return CatchClause;
-        
-          })(JavaScriptNode);
-        
-          JavaScriptVisitor.prototype.CatchClause = function(node) {
-            node = this.JavaScriptNode(node);
-            node.param = this.visit(node.param);
-            node.body = this.visit(node.body);
-            return node;
-          };
-        
-        
-          /*
-           * An identifier. Note that an identifier may be an expression or a destructuring
-           * pattern.
-           */
-        
-          exports.Identifier = Identifier = (function(_super) {
-            __extends(Identifier, _super);
-        
-        
+
+            exports.ForInStatement = ForInStatement = ((_super => {
+              __extends(ForInStatement, _super);
+          
+          
+              /*
+               * @left: VariableDeclaration |  Expression
+               * @right: Expression
+               * @body: Statement
+               */
+          
+              function ForInStatement(left, right, body) {
+                this.left = left;
+                this.right = right;
+                this.body = body;
+                ForInStatement.__super__.constructor.call(this);
+              }
+          
+              return ForInStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.ForInStatement = function(node) {
+              node = this.Statement(node);
+              node.left = this.visit(node.left);
+              node.right = this.visit(node.right);
+              node.body = this.visit(node.body);
+              return node;
+            };
+
+
             /*
-             * @name: string
+             * A debugger statement.
              */
-        
-            function Identifier(name) {
-              this.name = name;
-              Identifier.__super__.constructor.call(this);
-            }
-        
-            return Identifier;
-        
-          })(JavaScriptNode);
-        
-          JavaScriptVisitor.prototype.Identifier = function(node) {
-            node = this.JavaScriptNode(node);
-            return node;
-          };
-        
-        
-          /*
-           * A literal token. Note that a literal can be an expression.
-           */
-        
-          exports.Literal = Literal = (function(_super) {
-            __extends(Literal, _super);
-        
-        
+
+            exports.DebuggerStatement = DebuggerStatement = ((_super => {
+              __extends(DebuggerStatement, _super);
+          
+              function DebuggerStatement() {
+                DebuggerStatement.__super__.constructor.call(this);
+              }
+          
+              return DebuggerStatement;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.DebuggerStatement = function(node) {
+              node = this.Statement(node);
+              return node;
+            };
+
+
             /*
-             * @value: string | boolean | null | number | RegExp
+             * Any declaration node. Note that declarations are considered statements; this
+             * is because declarations can appear in any statement context in the language.
              */
-        
-            function Literal(value) {
-              this.value = value;
-              Literal.__super__.constructor.call(this);
-            }
-        
-            return Literal;
-        
-          })(Expression);
-        
-          JavaScriptVisitor.prototype.Literal = function(node) {
-            node = this.Expression(node);
-            return node;
-          };
-        
-        }).call(this);
+
+            exports.Declaration = Declaration = ((_super => {
+              __extends(Declaration, _super);
+          
+              function Declaration() {
+                Declaration.__super__.constructor.call(this);
+              }
+          
+              return Declaration;
+          
+            }))(Statement);
+
+            JavaScriptVisitor.prototype.Declaration = function(node) {
+              node = this.Statement(node);
+              return node;
+            };
+
+
+            /*
+             * A function declaration.  Note: The id field cannot be null.
+             */
+
+            exports.FunctionDeclaration = FunctionDeclaration = ((_super => {
+              __extends(FunctionDeclaration, _super);
+          
+          
+              /*
+               * @id: Identifier
+               * @params: [ Pattern ]
+               * @body: BlockStatement | Expression
+               */
+          
+              function FunctionDeclaration(id, params, body) {
+                this.id = id;
+                this.params = params;
+                this.body = body;
+                FunctionDeclaration.__super__.constructor.call(this);
+              }
+          
+              return FunctionDeclaration;
+          
+            }))(Declaration);
+
+            JavaScriptVisitor.prototype.FunctionDeclaration = function(node) {
+              node = this.Declaration(node);
+              node.id = this.visit(node.id);
+              node.params = this.visit(node.params);
+              node.body = this.visit(node.body);
+              return node;
+            };
+
+
+            /*
+             * A variable declaration, via one of var, let, or const.
+             */
+
+            exports.VariableDeclaration = VariableDeclaration = ((_super => {
+              __extends(VariableDeclaration, _super);
+          
+          
+              /*
+               * @declarations: [ VariableDeclarator ]
+               * @kind: "var"
+               */
+          
+              function VariableDeclaration(declarations, kind) {
+                this.declarations = declarations;
+                this.kind = kind;
+                VariableDeclaration.__super__.constructor.call(this);
+              }
+          
+              return VariableDeclaration;
+          
+            }))(Declaration);
+
+            JavaScriptVisitor.prototype.VariableDeclaration = function(node) {
+              node = this.Declaration(node);
+              node.declarations = this.visit(node.declarations);
+              return node;
+            };
+
+
+            /*
+             * A variable declarator.  Note: The id field cannot be null.
+             */
+
+            exports.VariableDeclarator = VariableDeclarator = ((_super => {
+              __extends(VariableDeclarator, _super);
+          
+          
+              /*
+               * @id: Pattern
+               * @init: Expression | null
+               */
+          
+              function VariableDeclarator(id, init) {
+                this.id = id;
+                this.init = init;
+                VariableDeclarator.__super__.constructor.call(this);
+              }
+          
+              return VariableDeclarator;
+          
+            }))(JavaScriptNode);
+
+            JavaScriptVisitor.prototype.VariableDeclarator = function(node) {
+              node = this.JavaScriptNode(node);
+              node.id = this.visit(node.id);
+              node.init = this.visit(node.init);
+              return node;
+            };
+
+
+            /*
+             * Any expression node. Since the left-hand side of an assignment may be any
+             * expression in general, an expression can also be a pattern.
+             */
+
+            exports.Expression = Expression = ((_super => {
+              __extends(Expression, _super);
+          
+              function Expression(...args) {
+                return Expression.__super__.constructor.apply(this, args);
+              }
+          
+              Expression.prototype.constuctor = function() {
+                return Expression.__super__.constuctor.call(this);
+              };
+          
+              return Expression;
+          
+            }))(JavaScriptNode);
+
+            JavaScriptVisitor.prototype.Expression = function(node) {
+              node = this.JavaScriptNode(node);
+              return node;
+            };
+
+
+            /*
+             * A this expression.
+             */
+
+            exports.ThisExpression = ThisExpression = ((_super => {
+              __extends(ThisExpression, _super);
+          
+              function ThisExpression() {
+                ThisExpression.__super__.constructor.call(this);
+              }
+          
+              return ThisExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.ThisExpression = function(node) {
+              node = this.Expression(node);
+              return node;
+            };
+
+
+            /*
+             * An array expression.
+             */
+
+            exports.ArrayExpression = ArrayExpression = ((_super => {
+              __extends(ArrayExpression, _super);
+          
+          
+              /*
+               * @elements: [ Expression | null ]
+               */
+          
+              function ArrayExpression(elements) {
+                this.elements = elements;
+                ArrayExpression.__super__.constructor.call(this);
+              }
+          
+              return ArrayExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.ArrayExpression = function(node) {
+              node = this.Expression(node);
+              node.elements = this.visit(node.elements);
+              return node;
+            };
+
+
+            /*
+             * An object expression. A literal property in an object expression can have
+             * either a string or number as its value.  Ordinary property initializers have a
+             * kind value "init"; getters and setters have the kind values "get" and "set",
+             * respectively.
+             */
+
+            exports.ObjectExpression = ObjectExpression = ((_super => {
+              __extends(ObjectExpression, _super);
+          
+          
+              /*
+               * @properties: [ { key: Literal | Identifier,
+               *                 value: Expression,
+               *                 kind: "init" | "get" | "set" } ];
+               */
+          
+              function ObjectExpression(properties) {
+                this.properties = properties;
+                ObjectExpression.__super__.constructor.call(this);
+              }
+          
+              return ObjectExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.ObjectExpression = function(node) {
+                var setter;
+                var _i;
+                var _len;
+                var _ref1;
+                node = this.Expression(node);
+                _ref1 = node.properties;
+                for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+                  setter = _ref1[_i];
+                  setter.key = this.visit(setter.key);
+                  setter.value = this.visit(setter.value);
+                }
+                return node;
+            };
+
+
+            /*
+             * A function expression.
+             */
+
+            exports.FunctionExpression = FunctionExpression = ((_super => {
+              __extends(FunctionExpression, _super);
+          
+          
+              /*
+               * @id: Identifier | null
+               * @params: [ Pattern ]
+               * @body: BlockStatement | Expression
+               */
+          
+              function FunctionExpression(id, params, body) {
+                this.id = id;
+                this.params = params;
+                this.body = body;
+                FunctionExpression.__super__.constructor.call(this);
+              }
+          
+              return FunctionExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.FunctionExpression = function(node) {
+              node = this.Expression(node);
+              node.id = this.visit(node.id);
+              node.params = this.visit(node.params);
+              node.body = this.visit(node.body);
+              return node;
+            };
+
+
+            /*
+             * A sequence expression, i.e., a comma-separated sequence of expressions.
+             */
+
+            exports.SequenceExpression = SequenceExpression = ((_super => {
+              __extends(SequenceExpression, _super);
+          
+          
+              /*
+               * @expressions: [ Expression ]
+               */
+          
+              function SequenceExpression(expressions) {
+                this.expressions = expressions;
+                SequenceExpression.__super__.constructor.call(this);
+              }
+          
+              return SequenceExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.SequenceExpression = function(node) {
+              node = this.Expression(node);
+              node.expressions = this.visit(node.expressions);
+              return node;
+            };
+
+
+            /*
+             * A unary operator expression.
+             */
+
+            exports.UnaryExpression = UnaryExpression = ((_super => {
+              __extends(UnaryExpression, _super);
+          
+          
+              /*
+               * @operator: "-" | "+" | "!" | "~" | "typeof" | "void" | "delete"
+               * @prefix: boolean
+               * @argument: Expression
+               */
+          
+              function UnaryExpression(operator, prefix, argument) {
+                this.operator = operator;
+                this.prefix = prefix;
+                this.argument = argument;
+                UnaryExpression.__super__.constructor.call(this);
+              }
+          
+              return UnaryExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.UnaryExpression = function(node) {
+              node = this.Expression(node);
+              node.argument = this.visit(node.argument);
+              return node;
+            };
+
+
+            /*
+             * A binary operator expression.
+             */
+
+            exports.BinaryExpression = BinaryExpression = ((_super => {
+              __extends(BinaryExpression, _super);
+          
+          
+              /*
+               * @operator: "==" | "!=" | "===" | "!==" | "<" | "<=" | ">" | ">="
+               *     | "<<" | ">>" | ">>>" | "+" | "-" | "*" | "/" | "%"
+               *     | "|" | "&" | "^" | "in" | "instanceof" | ".."
+               * @left: Expression
+               * @right: Expression
+               */
+          
+              function BinaryExpression(operator, left, right) {
+                this.operator = operator;
+                this.left = left;
+                this.right = right;
+                BinaryExpression.__super__.constructor.call(this);
+              }
+          
+              return BinaryExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.BinaryExpression = function(node) {
+              node = this.Expression(node);
+              node.left = this.visit(node.left);
+              node.right = this.visit(node.right);
+              return node;
+            };
+
+
+            /*
+             * An assignment operator expression.
+             */
+
+            exports.AssignmentExpression = AssignmentExpression = ((_super => {
+              __extends(AssignmentExpression, _super);
+          
+          
+              /*
+               * @operator: "=" | "+=" | "-=" | "*=" | "/=" | "%="
+               *     | "<<=" | ">>=" | ">>>=" | "|=" | "^=" | "&=";
+               * @left: Expression
+               * @right: Expression
+               */
+          
+              function AssignmentExpression(operator, left, right) {
+                this.operator = operator;
+                this.left = left;
+                this.right = right;
+                AssignmentExpression.__super__.constructor.call(this);
+              }
+          
+              return AssignmentExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.AssignmentExpression = function(node) {
+              node = this.Expression(node);
+              node.left = this.visit(node.left);
+              node.right = this.visit(node.right);
+              return node;
+            };
+
+
+            /*
+             * An update (increment or decrement) operator expression.
+             */
+
+            exports.UpdateExpression = UpdateExpression = ((_super => {
+              __extends(UpdateExpression, _super);
+          
+          
+              /*
+               * @operator: "++" | "--"
+               * @argument: Expression
+               * @prefix: boolean
+               */
+          
+              function UpdateExpression(operator, argument, prefix) {
+                this.operator = operator;
+                this.argument = argument;
+                this.prefix = prefix;
+                UpdateExpression.__super__.constructor.call(this);
+              }
+          
+              return UpdateExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.UpdateExpression = function(node) {
+              node = this.Expression(node);
+              node.argument = this.visit(node.argument);
+              return node;
+            };
+
+
+            /*
+             * A logical operator expression.
+             */
+
+            exports.LogicalExpression = LogicalExpression = ((_super => {
+              __extends(LogicalExpression, _super);
+          
+          
+              /*
+               * @operator: "||" | "&&"
+               * @left: Expression
+               * @right: Expression
+               */
+          
+              function LogicalExpression(operator, left, right) {
+                this.operator = operator;
+                this.left = left;
+                this.right = right;
+                LogicalExpression.__super__.constructor.call(this);
+              }
+          
+              return LogicalExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.LogicalExpression = function(node) {
+              node = this.Expression(node);
+              node.left = this.visit(node.left);
+              node.right = this.visit(node.right);
+              return node;
+            };
+
+
+            /*
+             * A conditional expression, i.e., a ternary ?/: expression.
+             */
+
+            exports.ConditionalExpression = ConditionalExpression = ((_super => {
+              __extends(ConditionalExpression, _super);
+          
+          
+              /*
+               * @test: Expression
+               * @alternate: Expression
+               * @consequent: Expression
+               */
+          
+              function ConditionalExpression(test, alternate, consequent) {
+                this.test = test;
+                this.alternate = alternate;
+                this.consequent = consequent;
+                ConditionalExpression.__super__.constructor.call(this);
+              }
+          
+              return ConditionalExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.ConditionalExpression = function(node) {
+              node = this.Expression(node);
+              node.test = this.visit(node.test);
+              node.alternate = this.visit(node.alternate);
+              node.consequent = this.visit(node.consequent);
+              return node;
+            };
+
+
+            /*
+             * A new expression.
+             */
+
+            exports.NewExpression = NewExpression = ((_super => {
+              __extends(NewExpression, _super);
+          
+          
+              /*
+               * @callee: Expression
+               * @arguments: [ Expression ] | null
+               */
+          
+              function NewExpression(callee, _arguments) {
+                this.callee = callee;
+                this["arguments"] = _arguments;
+                NewExpression.__super__.constructor.call(this);
+              }
+          
+              return NewExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.NewExpression = function(node) {
+              node = this.Expression(node);
+              node.callee = this.visit(node.callee);
+              node["arguments"] = this.visit(node["arguments"]);
+              return node;
+            };
+
+
+            /*
+             * A function or method call expression.
+             */
+
+            exports.CallExpression = CallExpression = ((_super => {
+              __extends(CallExpression, _super);
+          
+          
+              /*
+               * @callee: Expression
+               * @arguments: [ Expression ]
+               */
+          
+              function CallExpression(callee, _arguments) {
+                this.callee = callee;
+                this["arguments"] = _arguments;
+                CallExpression.__super__.constructor.call(this);
+              }
+          
+              return CallExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.CallExpression = function(node) {
+              node = this.Expression(node);
+              node.callee = this.visit(node.callee);
+              node["arguments"] = this.visit(node["arguments"]);
+              return node;
+            };
+
+
+            /*
+             * A member expression. If computed === true, the node corresponds to a computed
+             * e1[e2] expression and property is an Expression. If computed === false, the
+             * node corresponds to a static e1.x expression and property is an Identifier.
+             */
+
+            exports.MemberExpression = MemberExpression = ((_super => {
+              __extends(MemberExpression, _super);
+          
+          
+              /*
+               * @object: Expression
+               * @property: Identifier | Expression
+               * @computed : boolean
+               */
+          
+              function MemberExpression(object, property, computed) {
+                this.object = object;
+                this.property = property;
+                this.computed = computed;
+                MemberExpression.__super__.constructor.call(this);
+              }
+          
+              return MemberExpression;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.MemberExpression = function(node) {
+              node = this.Expression(node);
+              node.object = this.visit(node.object);
+              node.property = this.visit(node.property);
+              return node;
+            };
+
+
+            /*
+             * JavaScript 1.7 introduced destructuring assignment and binding forms.  All
+             * binding forms (such as function parameters, variable declarations, and catch
+             * block headers), accept array and object destructuring patterns in addition to
+             * plain identifiers. The left-hand sides of assignment expressions can be
+             * arbitrary expressions, but in the case where the expression is an object or
+             * array literal, it is interpreted by SpiderMonkey as a destructuring pattern.
+             *
+             * Since the left-hand side of an assignment can in general be any expression, in
+             * an assignment context, a pattern can be any expression. In binding positions
+             * (such as function parameters, variable declarations, and catch headers),
+             * patterns can only be identifiers in the base case, not arbitrary expressions.
+             */
+
+            exports.Pattern = Pattern = ((_super => {
+              __extends(Pattern, _super);
+          
+              function Pattern() {
+                Pattern.__super__.constructor.call(this);
+              }
+          
+              return Pattern;
+          
+            }))(JavaScriptNode);
+
+            JavaScriptVisitor.prototype.Pattern = function(node) {
+              node = this.JavaScriptNode(node);
+              return node;
+            };
+
+
+            /*
+             * An object-destructuring pattern. A literal property in an object pattern can
+             * have either a string or number as its value.
+             */
+
+            exports.ObjectPattern = ObjectPattern = ((_super => {
+              __extends(ObjectPattern, _super);
+          
+          
+              /*
+               * @properties: [ { key: Literal | Identifier, value: Pattern } ]
+               */
+          
+              function ObjectPattern(properties) {
+                this.properties = properties;
+                ObjectPattern.__super__.constructor.call(this);
+              }
+          
+              return ObjectPattern;
+          
+            }))(Pattern);
+
+            JavaScriptVisitor.prototype.ObjectPattern = function(node) {
+                var setter;
+                var _i;
+                var _len;
+                var _ref1;
+                node = this.Pattern(node);
+                _ref1 = node.properties;
+                for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+                  setter = _ref1[_i];
+                  setter.key = this.visit(setter.key);
+                  setter.value = this.visit(setter.value);
+                }
+                return node;
+            };
+
+
+            /*
+             * An array-destructuring pattern.
+             */
+
+            exports.ArrayPattern = ArrayPattern = ((_super => {
+              __extends(ArrayPattern, _super);
+          
+          
+              /*
+               * @elements: [ Pattern | null ]
+               */
+          
+              function ArrayPattern(elements) {
+                this.elements = elements;
+                ArrayPattern.__super__.constructor.call(this);
+              }
+          
+              return ArrayPattern;
+          
+            }))(Pattern);
+
+            JavaScriptVisitor.prototype.ArrayPattern = function(node) {
+              node = this.Pattern(node);
+              node.elements = this.visit(node.elements);
+              return node;
+            };
+
+
+            /*
+             * A case (if test is an Expression) or default (if test === null) clause in the
+             * body of a switch statement.
+             */
+
+            exports.SwitchCase = SwitchCase = ((_super => {
+              __extends(SwitchCase, _super);
+          
+          
+              /*
+               * @test: Expression | null
+               * @consequent: [ Statement ]
+               */
+          
+              function SwitchCase(test, consequent) {
+                this.test = test;
+                this.consequent = consequent;
+                SwitchCase.__super__.constructor.call(this);
+              }
+          
+              return SwitchCase;
+          
+            }))(JavaScriptNode);
+
+            JavaScriptVisitor.prototype.SwitchCase = function(node) {
+              node = this.JavaScriptNode(node);
+              node.test = this.visit(node.test);
+              node.consequent = this.visit(node.consequent);
+              return node;
+            };
+
+
+            /*
+             * A catch clause following a try block. The optional guard property corresponds
+             * to the optional expression guard on the bound variable.
+             */
+
+            exports.CatchClause = CatchClause = ((_super => {
+              __extends(CatchClause, _super);
+          
+          
+              /*
+               * @param: Pattern
+               * @body: BlockStatement
+               */
+          
+              function CatchClause(param, body) {
+                this.param = param;
+                this.body = body;
+                CatchClause.__super__.constructor.call(this);
+              }
+          
+              return CatchClause;
+          
+            }))(JavaScriptNode);
+
+            JavaScriptVisitor.prototype.CatchClause = function(node) {
+              node = this.JavaScriptNode(node);
+              node.param = this.visit(node.param);
+              node.body = this.visit(node.body);
+              return node;
+            };
+
+
+            /*
+             * An identifier. Note that an identifier may be an expression or a destructuring
+             * pattern.
+             */
+
+            exports.Identifier = Identifier = ((_super => {
+              __extends(Identifier, _super);
+          
+          
+              /*
+               * @name: string
+               */
+          
+              function Identifier(name) {
+                this.name = name;
+                Identifier.__super__.constructor.call(this);
+              }
+          
+              return Identifier;
+          
+            }))(JavaScriptNode);
+
+            JavaScriptVisitor.prototype.Identifier = function(node) {
+              node = this.JavaScriptNode(node);
+              return node;
+            };
+
+
+            /*
+             * A literal token. Note that a literal can be an expression.
+             */
+
+            exports.Literal = Literal = ((_super => {
+              __extends(Literal, _super);
+          
+          
+              /*
+               * @value: string | boolean | null | number | RegExp
+               */
+          
+              function Literal(value) {
+                this.value = value;
+                Literal.__super__.constructor.call(this);
+              }
+          
+              return Literal;
+          
+            }))(Expression);
+
+            JavaScriptVisitor.prototype.Literal = function(node) {
+              node = this.Expression(node);
+              return node;
+            };
+        })).call(this);
     };
 
     $__modules__.JavaScriptToQueryVisitor = function (exports) {
@@ -1667,303 +1741,331 @@
          * ----------------------------------------------------------------------------
          */
         
-        (function() {
-          var JS, JavaScriptToQueryVisitor, Q, _,
-            __hasProp = {}.hasOwnProperty,
-            __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-        
-          _ = require('./Utilities');
-        
-          JS = require('./JavaScriptNodes');
-        
-          Q = require('./QueryNodes');
-        
-        
-          /*
-           * Walk the JavaScriptExpression tree and convert its nodes into QueryExpression
-           * trees
-           */
-        
-          exports.JavaScriptToQueryVisitor = JavaScriptToQueryVisitor = (function(_super) {
-            __extends(JavaScriptToQueryVisitor, _super);
-        
-            function JavaScriptToQueryVisitor(context) {
-              this.context = context;
-            }
-        
-        
-            /* Get the source code for a given node */
-        
-            JavaScriptToQueryVisitor.prototype.getSource = function(node) {
-              var _ref, _ref1;
-              return this.context.source.slice(node != null ? (_ref = node.range) != null ? _ref[0] : void 0 : void 0, +((node != null ? (_ref1 = node.range) != null ? _ref1[1] : void 0 : void 0) - 1) + 1 || 9e9);
-            };
-        
-        
-            /* Throw an exception for an invalid node. */
-        
-            JavaScriptToQueryVisitor.prototype.invalid = function(node) {
-              throw "The expression '" + (this.getSource(node)) + "'' is not supported.";
-            };
-        
-        
-            /* Unary expressions just map operators */
-        
-            JavaScriptToQueryVisitor.prototype.translateUnary = function(node, mapping) {
-              var op, value;
-              op = mapping[node.operator];
-              if (op) {
-                value = this.visit(node.argument);
-                return new Q.UnaryExpression(op, value);
-              } else {
-                return null;
-              }
-            };
-        
-        
-            /* Binary expressions just map operators */
-        
-            JavaScriptToQueryVisitor.prototype.translateBinary = function(node, mapping) {
-              var left, op, right;
-              op = mapping[node.operator];
-              if (op) {
-                left = this.visit(node.left);
-                right = this.visit(node.right);
-                return new Q.BinaryExpression(op, left, right);
-              } else {
-                return null;
-              }
-            };
-        
-        
+        ((() => {
+            var JS;
+            var JavaScriptToQueryVisitor;
+            var Q;
+            var _;
+            var __hasProp = {}.hasOwnProperty;
+            var __extends = (child, parent) => { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+            _ = require('./Utilities');
+
+            JS = require('./JavaScriptNodes');
+
+            Q = require('./QueryNodes');
+
+
             /*
-             * The base visit method will throw exceptions for any nodes that remain
-             * untransformed (which allows us to only bother defining meaningful
-             * translations)
+             * Walk the JavaScriptExpression tree and convert its nodes into QueryExpression
+             * trees
              */
-        
-            JavaScriptToQueryVisitor.prototype.visit = function(node) {
-              var visited;
-              visited = JavaScriptToQueryVisitor.__super__.visit.call(this, node);
-              if (node === visited) {
-                this.invalid(node);
+
+            exports.JavaScriptToQueryVisitor = JavaScriptToQueryVisitor = ((_super => {
+              __extends(JavaScriptToQueryVisitor, _super);
+          
+              function JavaScriptToQueryVisitor(context) {
+                this.context = context;
               }
-              return visited;
-            };
-        
-            JavaScriptToQueryVisitor.prototype.MemberExpression = function(node) {
-              var expr;
-              expr = (function() {
-                var _ref, _ref1, _ref2, _ref3;
-                if ((node != null ? (_ref = node.object) != null ? _ref.type : void 0 : void 0) === 'ThisExpression' && (node != null ? (_ref1 = node.property) != null ? _ref1.type : void 0 : void 0) === 'Identifier') {
-        
-                  /* Simple member access */
-                  return new Q.MemberExpression(node.property.name);
-                } else if ((node != null ? (_ref2 = node.object) != null ? _ref2.type : void 0 : void 0) === 'MemberExpression' && ((_ref3 = node.object.object) != null ? _ref3.type : void 0) === 'ThisExpression' && node.property.type === 'Identifier') {
-        
-                  /* Methods that look like properties */
-                  if (node.property.name === 'length') {
-                    return new Q.InvocationExpression(Q.Methods.Length, new Q.MemberExpression(node.object.property.name));
-                  }
-                }
-              })();
-              return expr != null ? expr : JavaScriptToQueryVisitor.__super__.MemberExpression.call(this, node);
-            };
-        
-            JavaScriptToQueryVisitor.prototype.Literal = function(node) {
-              return new Q.ConstantExpression(node.value);
-            };
-        
-            JavaScriptToQueryVisitor.prototype.UnaryExpression = function(node) {
-              var mapping, _ref;
-              if (node.operator === '+') {
-        
-                /* Ignore the + in '+52' */
-                return this.visit(node.argument);
-              } else {
-                mapping = {
-                  '!': Q.UnaryOperators.Not,
-                  '-': Q.UnaryOperators.Negate
-                };
-                return (_ref = this.translateUnary(node, mapping)) != null ? _ref : JavaScriptToQueryVisitor.__super__.UnaryExpression.call(this, node);
-              }
-            };
-        
-            JavaScriptToQueryVisitor.prototype.UpdateExpression = function(node) {
-              var mapping, _ref;
-              mapping = {
-                '++': Q.UnaryOperators.Increment,
-                '--': Q.UnaryOperators.Decrement
+          
+          
+              /* Get the source code for a given node */
+          
+              JavaScriptToQueryVisitor.prototype.getSource = function(node) {
+                  var _ref;
+                  var _ref1;
+                  return this.context.source.slice(node != null ? (_ref = node.range) != null ? _ref[0] : void 0 : void 0, +((node != null ? (_ref1 = node.range) != null ? _ref1[1] : void 0 : void 0) - 1) + 1 || 9e9);
               };
-              return (_ref = this.translateUnary(node, mapping)) != null ? _ref : JavaScriptToQueryVisitor.__super__.UpdateExpression.call(this, node);
-            };
-        
-            JavaScriptToQueryVisitor.prototype.LogicalExpression = function(node) {
-              var mapping, _ref;
-              mapping = {
-                '&&': Q.BinaryOperators.And,
-                '||': Q.BinaryOperators.Or
+          
+          
+              /* Throw an exception for an invalid node. */
+          
+              JavaScriptToQueryVisitor.prototype.invalid = function(node) {
+                throw "The expression '" + (this.getSource(node)) + "'' is not supported.";
               };
-              return (_ref = this.translateBinary(node, mapping)) != null ? _ref : JavaScriptToQueryVisitor.__super__.LogicalExpression.call(this, node);
-            };
-        
-            JavaScriptToQueryVisitor.prototype.BinaryExpression = function(node) {
-              var k, left, mapping, properties, v, value, _ref;
-              mapping = {
-                '+': Q.BinaryOperators.Add,
-                '-': Q.BinaryOperators.Subtract,
-                '*': Q.BinaryOperators.Multiply,
-                '/': Q.BinaryOperators.Divide,
-                '%': Q.BinaryOperators.Modulo,
-                '>': Q.BinaryOperators.GreaterThan,
-                '>=': Q.BinaryOperators.GreaterThanOrEqual,
-                '<': Q.BinaryOperators.LessThan,
-                '<=': Q.BinaryOperators.LessThanOrEqual,
-                '!=': Q.BinaryOperators.NotEqual,
-                '!==': Q.BinaryOperators.NotEqual,
-                '==': Q.BinaryOperators.Equal,
-                '===': Q.BinaryOperators.Equal
-              };
-              return (function() {
-                var _ref1, _ref2;
-                if ((_ref = this.translateBinary(node, mapping)) != null) {
-                  return _ref;
-                } else if (node.operator === 'in' && ((_ref1 = node.right) != null ? _ref1.type : void 0) === 'Literal' && _.isArray((_ref2 = node.right) != null ? _ref2.value : void 0)) {
-        
-                  /*
-                   * Transform the 'varName in [x, y, z]' operator into a series of
-                   * comparisons like varName == x || varName == y || varName == z.
-                   */
-                  if (node.right.value.length > 0) {
-                    left = this.visit(node.left);
-                    return Q.QueryExpression.groupClauses(Q.BinaryOperators.Or, (function() {
-                      var _i, _len, _ref3, _results;
-                      _ref3 = node.right.value;
-                      _results = [];
-                      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
-                        value = _ref3[_i];
-        
-                        /*
-                         * If we've got an array of objects who each have
-                         * a single property, we'll use the value of that
-                         * property.  Otherwise we'll throw an exception.
-                         */
-                        if (_.isObject(value)) {
-                          properties = (function() {
-                            var _results1;
-                            _results1 = [];
-                            for (k in value) {
-                              v = value[k];
-                              _results1.push(v);
-                            }
-                            return _results1;
-                          })();
-                          if ((properties != null ? properties.length : void 0) !== 1) {
-                            throw "in operator requires comparison objects with a single field, not " + value + " (" + (JSON.stringify(value)) + "), for expression '" + (this.getSource(node)) + "'";
-                          }
-                          value = properties[0];
-                        }
-                        _results.push(new Q.BinaryExpression(Q.BinaryOperators.Equal, left, new Q.ConstantExpression(value)));
-                      }
-                      return _results;
-                    }).call(this));
+          
+          
+              /* Unary expressions just map operators */
+          
+              JavaScriptToQueryVisitor.prototype.translateUnary = function(node, mapping) {
+                  var op;
+                  var value;
+                  op = mapping[node.operator];
+                  if (op) {
+                    value = this.visit(node.argument);
+                    return new Q.UnaryExpression(op, value);
                   } else {
-        
-                    /*
-                     * If the array of values is empty, change the query to
-                     * true == false since it can't be satisfied.
-                     */
-                    return new Q.BinaryExpression(Q.BinaryOperators.Equal, new Q.ConstantExpression(true), new Q.ConstantExpression(false));
+                    return null;
                   }
-                } else {
-                  return JavaScriptToQueryVisitor.__super__.BinaryExpression.call(this, node);
-                }
-              }).call(this);
-            };
-        
-            JavaScriptToQueryVisitor.prototype.CallExpression = function(node) {
-              var expr, func, getSingleArg, getTwoArgs, member, method, _ref;
-              getSingleArg = (function(_this) {
-                return function(name) {
-                  var _ref;
-                  if (((_ref = node["arguments"]) != null ? _ref.length : void 0) !== 1) {
-                    throw "Function " + name + " expects one argument in expression '" + (_this.getSource(node)) + "'";
+              };
+          
+          
+              /* Binary expressions just map operators */
+          
+              JavaScriptToQueryVisitor.prototype.translateBinary = function(node, mapping) {
+                  var left;
+                  var op;
+                  var right;
+                  op = mapping[node.operator];
+                  if (op) {
+                    left = this.visit(node.left);
+                    right = this.visit(node.right);
+                    return new Q.BinaryExpression(op, left, right);
+                  } else {
+                    return null;
                   }
-                  return _this.visit(node["arguments"][0]);
-                };
-              })(this);
-              getTwoArgs = (function(_this) {
-                return function(member, name) {
-                  var _ref;
-                  if (((_ref = node["arguments"]) != null ? _ref.length : void 0) !== 2) {
-                    throw "Function " + name + " expects two arguments in expression '" + (_this.getSource(node)) + "'";
-                  }
-                  return [member, _this.visit(node["arguments"][0]), _this.visit(node["arguments"][1])];
-                };
-              })(this);
-        
+              };
+          
+          
               /*
-               * Translate known method calls that aren't attached to an instance.
-               * Note that we can compare against the actual method because the
-               * partial evaluator will have converted it into a literal for us.
+               * The base visit method will throw exceptions for any nodes that remain
+               * untransformed (which allows us to only bother defining meaningful
+               * translations)
                */
-              func = node != null ? (_ref = node.callee) != null ? _ref.value : void 0 : void 0;
-              expr = (function() {
-                var _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
-                if (func === Math.floor) {
-                  return new Q.InvocationExpression(Q.Methods.Floor, [getSingleArg('floor')]);
-                } else if (func === Math.ceil) {
-                  return new Q.InvocationExpression(Q.Methods.Ceiling, [getSingleArg('ceil')]);
-                } else if (func === Math.round) {
-                  return new Q.InvocationExpression(Q.Methods.Round, [getSingleArg('round')]);
-                } else {
-        
-                  /*
-                   * Translate methods dangling off an instance
-                   */
-                  if (node.callee.type === 'MemberExpression' && ((_ref1 = node.callee.object) != null ? _ref1.__hasThisExp : void 0) === true) {
-                    if ((node != null ? (_ref2 = node.callee) != null ? (_ref3 = _ref2.object) != null ? _ref3.type : void 0 : void 0 : void 0) === 'CallExpression') {
-                      member = this.visit(node.callee.object);
-                    } else {
-                      member = new Q.MemberExpression((_ref4 = node.callee.object) != null ? (_ref5 = _ref4.property) != null ? _ref5.name : void 0 : void 0);
-                    }
-                    method = (_ref6 = node.callee) != null ? (_ref7 = _ref6.property) != null ? _ref7.name : void 0 : void 0;
-                    if (method === 'toUpperCase') {
-                      return new Q.InvocationExpression(Q.Methods.ToUpperCase, [member]);
-                    } else if (method === 'toLowerCase') {
-                      return new Q.InvocationExpression(Q.Methods.ToLowerCase, [member]);
-                    } else if (method === 'trim') {
-                      return new Q.InvocationExpression(Q.Methods.Trim, [member]);
-                    } else if (method === 'indexOf') {
-                      return new Q.InvocationExpression(Q.Methods.IndexOf, [member, getSingleArg('indexOf')]);
-                    } else if (method === 'concat') {
-                      return new Q.InvocationExpression(Q.Methods.Concat, [member, getSingleArg('concat')]);
-                    } else if (method === 'substring' || method === 'substr') {
-                      return new Q.InvocationExpression(Q.Methods.Substring, getTwoArgs(member, 'substring'));
-                    } else if (method === 'replace') {
-                      return new Q.InvocationExpression(Q.Methods.Replace, getTwoArgs(member, 'replace'));
-                    } else if (method === 'getFullYear' || method === 'getUTCFullYear') {
-                      return new Q.InvocationExpression(Q.Methods.Year, [member]);
-                    } else if (method === 'getYear') {
-                      return new Q.BinaryExpression(Q.BinaryOperators.Subtract, new Q.InvocationExpression(Q.Methods.Year, [member]), new Q.ConstantExpression(1900));
-                    } else if (method === 'getMonth' || method === 'getUTCMonth') {
-        
-                      /* getMonth is 0 indexed in JavaScript */
-                      return new Q.BinaryExpression(Q.BinaryOperators.Subtract, new Q.InvocationExpression(Q.Methods.Month, [member]), new Q.ConstantExpression(1));
-                    } else if (method === 'getDate' || method === 'getUTCDate') {
-                      return new Q.InvocationExpression(Q.Methods.Day, [member]);
-                    }
-                  }
+          
+              JavaScriptToQueryVisitor.prototype.visit = function(node) {
+                var visited;
+                visited = JavaScriptToQueryVisitor.__super__.visit.call(this, node);
+                if (node === visited) {
+                  this.invalid(node);
                 }
-              }).call(this);
-              return expr != null ? expr : JavaScriptToQueryVisitor.__super__.CallExpression.call(this, node);
-            };
-        
-            return JavaScriptToQueryVisitor;
-        
-          })(JS.JavaScriptVisitor);
-        
-        }).call(this);
+                return visited;
+              };
+          
+              JavaScriptToQueryVisitor.prototype.MemberExpression = function(node) {
+                var expr;
+                expr = ((() => {
+                    var _ref;
+                    var _ref1;
+                    var _ref2;
+                    var _ref3;
+                    if ((node != null ? (_ref = node.object) != null ? _ref.type : void 0 : void 0) === 'ThisExpression' && (node != null ? (_ref1 = node.property) != null ? _ref1.type : void 0 : void 0) === 'Identifier') {
+            
+                      /* Simple member access */
+                      return new Q.MemberExpression(node.property.name);
+                    } else if ((node != null ? (_ref2 = node.object) != null ? _ref2.type : void 0 : void 0) === 'MemberExpression' && ((_ref3 = node.object.object) != null ? _ref3.type : void 0) === 'ThisExpression' && node.property.type === 'Identifier') {
+            
+                      /* Methods that look like properties */
+                      if (node.property.name === 'length') {
+                        return new Q.InvocationExpression(Q.Methods.Length, new Q.MemberExpression(node.object.property.name));
+                      }
+                    }
+                }))();
+                return expr != null ? expr : JavaScriptToQueryVisitor.__super__.MemberExpression.call(this, node);
+              };
+          
+              JavaScriptToQueryVisitor.prototype.Literal = node => new Q.ConstantExpression(node.value);
+          
+              JavaScriptToQueryVisitor.prototype.UnaryExpression = function(node) {
+                  var mapping;
+                  var _ref;
+                  if (node.operator === '+') {
+            
+                    /* Ignore the + in '+52' */
+                    return this.visit(node.argument);
+                  } else {
+                    mapping = {
+                      '!': Q.UnaryOperators.Not,
+                      '-': Q.UnaryOperators.Negate
+                    };
+                    return (_ref = this.translateUnary(node, mapping)) != null ? _ref : JavaScriptToQueryVisitor.__super__.UnaryExpression.call(this, node);
+                  }
+              };
+          
+              JavaScriptToQueryVisitor.prototype.UpdateExpression = function(node) {
+                  var mapping;
+                  var _ref;
+                  mapping = {
+                    '++': Q.UnaryOperators.Increment,
+                    '--': Q.UnaryOperators.Decrement
+                  };
+                  return (_ref = this.translateUnary(node, mapping)) != null ? _ref : JavaScriptToQueryVisitor.__super__.UpdateExpression.call(this, node);
+              };
+          
+              JavaScriptToQueryVisitor.prototype.LogicalExpression = function(node) {
+                  var mapping;
+                  var _ref;
+                  mapping = {
+                    '&&': Q.BinaryOperators.And,
+                    '||': Q.BinaryOperators.Or
+                  };
+                  return (_ref = this.translateBinary(node, mapping)) != null ? _ref : JavaScriptToQueryVisitor.__super__.LogicalExpression.call(this, node);
+              };
+          
+              JavaScriptToQueryVisitor.prototype.BinaryExpression = function(node) {
+                  var k;
+                  var left;
+                  var mapping;
+                  var properties;
+                  var v;
+                  var value;
+                  var _ref;
+                  mapping = {
+                    '+': Q.BinaryOperators.Add,
+                    '-': Q.BinaryOperators.Subtract,
+                    '*': Q.BinaryOperators.Multiply,
+                    '/': Q.BinaryOperators.Divide,
+                    '%': Q.BinaryOperators.Modulo,
+                    '>': Q.BinaryOperators.GreaterThan,
+                    '>=': Q.BinaryOperators.GreaterThanOrEqual,
+                    '<': Q.BinaryOperators.LessThan,
+                    '<=': Q.BinaryOperators.LessThanOrEqual,
+                    '!=': Q.BinaryOperators.NotEqual,
+                    '!==': Q.BinaryOperators.NotEqual,
+                    '==': Q.BinaryOperators.Equal,
+                    '===': Q.BinaryOperators.Equal
+                  };
+                  return (function() {
+                      var _ref1;
+                      var _ref2;
+                      if ((_ref = this.translateBinary(node, mapping)) != null) {
+                        return _ref;
+                      } else if (node.operator === 'in' && ((_ref1 = node.right) != null ? _ref1.type : void 0) === 'Literal' && _.isArray((_ref2 = node.right) != null ? _ref2.value : void 0)) {
+              
+                        /*
+                         * Transform the 'varName in [x, y, z]' operator into a series of
+                         * comparisons like varName == x || varName == y || varName == z.
+                         */
+                        if (node.right.value.length > 0) {
+                          left = this.visit(node.left);
+                          return Q.QueryExpression.groupClauses(Q.BinaryOperators.Or, (function() {
+                              var _i;
+                              var _len;
+                              var _ref3;
+                              var _results;
+                              _ref3 = node.right.value;
+                              _results = [];
+                              for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+                                value = _ref3[_i];
+                
+                                /*
+                                 * If we've got an array of objects who each have
+                                 * a single property, we'll use the value of that
+                                 * property.  Otherwise we'll throw an exception.
+                                 */
+                                if (_.isObject(value)) {
+                                  properties = ((() => {
+                                    var _results1;
+                                    _results1 = [];
+                                    for (k in value) {
+                                      v = value[k];
+                                      _results1.push(v);
+                                    }
+                                    return _results1;
+                                  }))();
+                                  if ((properties != null ? properties.length : void 0) !== 1) {
+                                    throw "in operator requires comparison objects with a single field, not " + value + " (" + (JSON.stringify(value)) + "), for expression '" + (this.getSource(node)) + "'";
+                                  }
+                                  value = properties[0];
+                                }
+                                _results.push(new Q.BinaryExpression(Q.BinaryOperators.Equal, left, new Q.ConstantExpression(value)));
+                              }
+                              return _results;
+                          }).call(this));
+                        } else {
+              
+                          /*
+                           * If the array of values is empty, change the query to
+                           * true == false since it can't be satisfied.
+                           */
+                          return new Q.BinaryExpression(Q.BinaryOperators.Equal, new Q.ConstantExpression(true), new Q.ConstantExpression(false));
+                        }
+                      } else {
+                        return JavaScriptToQueryVisitor.__super__.BinaryExpression.call(this, node);
+                      }
+                  }).call(this);
+              };
+          
+              JavaScriptToQueryVisitor.prototype.CallExpression = function(node) {
+                  var expr;
+                  var func;
+                  var getSingleArg;
+                  var getTwoArgs;
+                  var member;
+                  var method;
+                  var _ref;
+                  getSingleArg = ((_this => name => {
+                    var _ref;
+                    if (((_ref = node["arguments"]) != null ? _ref.length : void 0) !== 1) {
+                      throw "Function " + name + " expects one argument in expression '" + (_this.getSource(node)) + "'";
+                    }
+                    return _this.visit(node["arguments"][0]);
+                  }))(this);
+                  getTwoArgs = ((_this => (member, name) => {
+                    var _ref;
+                    if (((_ref = node["arguments"]) != null ? _ref.length : void 0) !== 2) {
+                      throw "Function " + name + " expects two arguments in expression '" + (_this.getSource(node)) + "'";
+                    }
+                    return [member, _this.visit(node["arguments"][0]), _this.visit(node["arguments"][1])];
+                  }))(this);
+
+                  /*
+                   * Translate known method calls that aren't attached to an instance.
+                   * Note that we can compare against the actual method because the
+                   * partial evaluator will have converted it into a literal for us.
+                   */
+                  func = node != null ? (_ref = node.callee) != null ? _ref.value : void 0 : void 0;
+                  expr = (function() {
+                      var _ref1;
+                      var _ref2;
+                      var _ref3;
+                      var _ref4;
+                      var _ref5;
+                      var _ref6;
+                      var _ref7;
+                      if (func === Math.floor) {
+                        return new Q.InvocationExpression(Q.Methods.Floor, [getSingleArg('floor')]);
+                      } else if (func === Math.ceil) {
+                        return new Q.InvocationExpression(Q.Methods.Ceiling, [getSingleArg('ceil')]);
+                      } else if (func === Math.round) {
+                        return new Q.InvocationExpression(Q.Methods.Round, [getSingleArg('round')]);
+                      } else {
+              
+                        /*
+                         * Translate methods dangling off an instance
+                         */
+                        if (node.callee.type === 'MemberExpression' && ((_ref1 = node.callee.object) != null ? _ref1.__hasThisExp : void 0) === true) {
+                          if ((node != null ? (_ref2 = node.callee) != null ? (_ref3 = _ref2.object) != null ? _ref3.type : void 0 : void 0 : void 0) === 'CallExpression') {
+                            member = this.visit(node.callee.object);
+                          } else {
+                            member = new Q.MemberExpression((_ref4 = node.callee.object) != null ? (_ref5 = _ref4.property) != null ? _ref5.name : void 0 : void 0);
+                          }
+                          method = (_ref6 = node.callee) != null ? (_ref7 = _ref6.property) != null ? _ref7.name : void 0 : void 0;
+                          if (method === 'toUpperCase') {
+                            return new Q.InvocationExpression(Q.Methods.ToUpperCase, [member]);
+                          } else if (method === 'toLowerCase') {
+                            return new Q.InvocationExpression(Q.Methods.ToLowerCase, [member]);
+                          } else if (method === 'trim') {
+                            return new Q.InvocationExpression(Q.Methods.Trim, [member]);
+                          } else if (method === 'indexOf') {
+                            return new Q.InvocationExpression(Q.Methods.IndexOf, [member, getSingleArg('indexOf')]);
+                          } else if (method === 'concat') {
+                            return new Q.InvocationExpression(Q.Methods.Concat, [member, getSingleArg('concat')]);
+                          } else if (method === 'substring' || method === 'substr') {
+                            return new Q.InvocationExpression(Q.Methods.Substring, getTwoArgs(member, 'substring'));
+                          } else if (method === 'replace') {
+                            return new Q.InvocationExpression(Q.Methods.Replace, getTwoArgs(member, 'replace'));
+                          } else if (method === 'getFullYear' || method === 'getUTCFullYear') {
+                            return new Q.InvocationExpression(Q.Methods.Year, [member]);
+                          } else if (method === 'getYear') {
+                            return new Q.BinaryExpression(Q.BinaryOperators.Subtract, new Q.InvocationExpression(Q.Methods.Year, [member]), new Q.ConstantExpression(1900));
+                          } else if (method === 'getMonth' || method === 'getUTCMonth') {
+              
+                            /* getMonth is 0 indexed in JavaScript */
+                            return new Q.BinaryExpression(Q.BinaryOperators.Subtract, new Q.InvocationExpression(Q.Methods.Month, [member]), new Q.ConstantExpression(1));
+                          } else if (method === 'getDate' || method === 'getUTCDate') {
+                            return new Q.InvocationExpression(Q.Methods.Day, [member]);
+                          }
+                        }
+                      }
+                  }).call(this);
+                  return expr != null ? expr : JavaScriptToQueryVisitor.__super__.CallExpression.call(this, node);
+              };
+          
+              return JavaScriptToQueryVisitor;
+          
+            }))(JS.JavaScriptVisitor);
+        })).call(this);
     };
 
     $__modules__.Node = function (exports) {
@@ -1975,87 +2077,88 @@
          * ----------------------------------------------------------------------------
          */
         
-        (function() {
-          var Node, Visitor, _;
-        
-          _ = require('./Utilities');
-        
-        
-          /*
-           * The base Node class for all expressions used for analysis and translation by
-           * visitors.  It's designed to interop with other modules that create expression
-           * trees using object literals with a type tag.
-           */
-        
-          exports.Node = Node = (function() {
-        
+        ((() => {
+            var Node;
+            var Visitor;
+            var _;
+
+            _ = require('./Utilities');
+
+
             /*
-             * Type tag of the node that allows for eash dispatch in visitors.  This is
-             * automatically set in the constructor (so it's important to call super() in
-             * derived Node classes).
+             * The base Node class for all expressions used for analysis and translation by
+             * visitors.  It's designed to interop with other modules that create expression
+             * trees using object literals with a type tag.
              */
-            Node.prototype.type = 'Node';
-        
-        
-            /*
-             * Initializes a new instance of the Node class and sets its type tag.
-             */
-        
-            function Node() {
-              this.type = _.functionName(this.constructor);
-            }
-        
-            return Node;
-        
-          })();
-        
-        
-          /*
-           * Base class for all visitors
-           */
-        
-          exports.Visitor = Visitor = (function() {
-            function Visitor() {}
-        
-        
-            /*
-             * Visit a node.
-             */
-        
-            Visitor.prototype.visit = function(node) {
-              var element, _i, _len, _results;
-              if (_.isArray(node)) {
-                _results = [];
-                for (_i = 0, _len = node.length; _i < _len; _i++) {
-                  element = node[_i];
-                  _results.push(this.visit(element));
-                }
-                return _results;
-              } else if (!(node != null ? node.type : void 0)) {
-                return node;
-              } else if (!_.isFunction(this[node.type])) {
-                throw "Unsupported expression " + (this.getSource(node));
-              } else {
-                return this[node.type](node);
+
+            exports.Node = Node = ((() => {
+          
+              /*
+               * Type tag of the node that allows for eash dispatch in visitors.  This is
+               * automatically set in the constructor (so it's important to call super() in
+               * derived Node classes).
+               */
+              Node.prototype.type = 'Node';
+          
+          
+              /*
+               * Initializes a new instance of the Node class and sets its type tag.
+               */
+          
+              function Node() {
+                this.type = _.functionName(this.constructor);
               }
-            };
-        
-        
+          
+              return Node;
+          
+            }))();
+
+
             /*
-             * Get the source code corresponding to a node.
+             * Base class for all visitors
              */
-        
-            Visitor.prototype.getSource = function(node) {
-        
-              /* It is expected this will be overridden in derived visitors. */
-              return null;
-            };
-        
-            return Visitor;
-        
-          })();
-        
-        }).call(this);
+
+            exports.Visitor = Visitor = ((() => {
+              function Visitor() {}
+          
+          
+              /*
+               * Visit a node.
+               */
+          
+              Visitor.prototype.visit = function(node) {
+                  var element;
+                  var _i;
+                  var _len;
+                  var _results;
+                  if (_.isArray(node)) {
+                    _results = [];
+                    for (_i = 0, _len = node.length; _i < _len; _i++) {
+                      element = node[_i];
+                      _results.push(this.visit(element));
+                    }
+                    return _results;
+                  } else if (!(node != null ? node.type : void 0)) {
+                    return node;
+                  } else if (!_.isFunction(this[node.type])) {
+                    throw "Unsupported expression " + (this.getSource(node));
+                  } else {
+                    return this[node.type](node);
+                  }
+              };
+          
+          
+              /*
+               * Get the source code corresponding to a node.
+               */
+          
+              Visitor.prototype.getSource = node => /* It is expected this will be overridden in derived visitors. */
+              null;
+          
+              return Visitor;
+          
+            }))();
+        })).call(this);
     };
 
     $__modules__.ODataProvider = function (exports) {
@@ -2067,309 +2170,343 @@
          * ----------------------------------------------------------------------------
          */
         
-        (function() {
-          var ODataFilterQueryVisitor, ODataProvider, Q, Query, _,
-            __hasProp = {}.hasOwnProperty,
-            __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-        
-          _ = require('./Utilities');
-        
-          Q = require('./QueryNodes');
-        
-          Query = require('./Query').Query;
-        
-          exports.ODataProvider = ODataProvider = (function() {
-            function ODataProvider() {}
-        
-        
-            /*
-             * Convert a query into an OData URI.
-             */
-        
-            ODataProvider.prototype.toQuery = function(query) {
-              var odata, s, url;
-              odata = this.toOData(query, true);
-              url = "/" + odata.table;
-              s = '?';
-              if (odata.filters) {
-                url += "" + s + "$filter=" + odata.filters;
-                s = '&';
-              }
-              if (odata.ordering) {
-                url += "" + s + "$orderby=" + odata.ordering;
-                s = '&';
-              }
-              if (odata.skip) {
-                url += "" + s + "$skip=" + odata.skip;
-                s = '&';
-              }
-              if (odata.take || odata.take === 0) {
-                url += "" + s + "$top=" + odata.take;
-                s = '&';
-              }
-              if (odata.selections) {
-                url += "" + s + "$select=" + odata.selections;
-                s = '&';
-              }
-              if (odata.includeTotalCount) {
-                url += "" + s + "$inlinecount=allpages";
-              }
-              return url;
-            };
-        
-        
-            /*
-             * Translate the query components into OData strings
-             */
-        
-            ODataProvider.prototype.toOData = function(query, encodeForUri) {
-              var asc, components, name, odata, ordering, _ref, _ref1;
-              if (encodeForUri == null) {
-                encodeForUri = false;
-              }
-              components = (_ref = query != null ? query.getComponents() : void 0) != null ? _ref : {};
-              ordering = (function() {
-                var _ref1, _results;
-                _ref1 = components != null ? components.ordering : void 0;
-                _results = [];
-                for (name in _ref1) {
-                  asc = _ref1[name];
-                  _results.push(asc ? name : "" + name + " desc");
-                }
-                return _results;
-              })();
-              return odata = {
-                table: components != null ? components.table : void 0,
-                filters: ODataFilterQueryVisitor.convert(components.filters, encodeForUri),
-                ordering: ordering != null ? ordering.toString() : void 0,
-                skip: components != null ? components.skip : void 0,
-                take: components != null ? components.take : void 0,
-                selections: components != null ? (_ref1 = components.selections) != null ? _ref1.toString() : void 0 : void 0,
-                includeTotalCount: components != null ? components.includeTotalCount : void 0
-              };
-            };
-        
-        
-            /*
-             * Convert OData components into a query object
-             */
-        
-            ODataProvider.prototype.fromOData = function(table, filters, ordering, skip, take, selections, includeTotalCount) {
-              var direction, field, item, query, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3;
-              query = new Query(table);
-              if (filters) {
-                query.where(filters);
-              }
-              if (skip || skip === 0) {
-                query.skip(skip);
-              }
-              if (take || take === 0) {
-                query.take(take);
-              }
-              if (includeTotalCount) {
-                query.includeTotalCount();
-              }
-              _ref1 = (_ref = selections != null ? selections.split(',') : void 0) != null ? _ref : [];
-              for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-                field = _ref1[_i];
-                query.select(field.trim());
-              }
-              _ref2 = (function() {
-                var _k, _len1, _ref2, _ref3, _results;
-                _ref3 = (_ref2 = ordering != null ? ordering.split(',') : void 0) != null ? _ref2 : [];
-                _results = [];
-                for (_k = 0, _len1 = _ref3.length; _k < _len1; _k++) {
-                  item = _ref3[_k];
-                  _results.push(item.trim().split(' '));
-                }
-                return _results;
-              })();
-              for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
-                _ref3 = _ref2[_j], field = _ref3[0], direction = _ref3[1];
-                if ((direction != null ? direction.toUpperCase() : void 0) !== 'DESC') {
-                  query.orderBy(field);
-                } else {
-                  query.orderByDescending(field);
-                }
-              }
-              return query;
-            };
-        
-            return ODataProvider;
-        
-          })();
-        
-        
-          /*
-           * Visitor that converts query expression trees into OData filter statements.
-           */
-        
-          ODataFilterQueryVisitor = (function(_super) {
-            __extends(ODataFilterQueryVisitor, _super);
-        
-            function ODataFilterQueryVisitor(encodeForUri) {
-              this.encodeForUri = encodeForUri;
-            }
-        
-            ODataFilterQueryVisitor.convert = function(filters, encodeForUri) {
-              var visitor, _ref;
-              visitor = new ODataFilterQueryVisitor(encodeForUri);
-              return (_ref = (filters ? visitor.visit(filters) : void 0)) != null ? _ref : null;
-            };
-        
-            ODataFilterQueryVisitor.prototype.toOData = function(value) {
-              var text;
-              if ((_.isNumber(value)) || (_.isBoolean(value))) {
-                return value.toString();
-              } else if (_.isString(value)) {
-                value = value.replace(/'/g, "''");
-                if ((this.encodeForUri != null) && this.encodeForUri === true) {
-                  value = encodeURIComponent(value);
-                }
-                return "'" + value + "'";
-              } else if (_.isDate(value)) {
-        
-                /*
-                 * Dates are expected in the format
-                 *   "datetime'yyyy-mm-ddThh:mm[:ss[.fffffff]]'"
-                 * which JSON.stringify gives us by default
-                 */
-                text = JSON.stringify(value);
-                if (text.length > 2) {
-                  text = text.slice(1, +(text.length - 2) + 1 || 9e9);
-                }
-                text = text.replace(/(T\d{2}:\d{2}:\d{2})Z$/, function(all, time) {
-                  var msec;
-                  msec = String(value.getMilliseconds() + 1000).substring(1);
-                  return "" + time + "." + msec + "Z";
-                });
-                return "datetime'" + text + "'";
-              } else if (!value) {
-                return "null";
-              } else {
-                throw "Unsupported literal value " + value;
-              }
-            };
-        
-            ODataFilterQueryVisitor.prototype.ConstantExpression = function(node) {
-              return this.toOData(node.value);
-            };
-        
-            ODataFilterQueryVisitor.prototype.MemberExpression = function(node) {
-              return node.member;
-            };
-        
-            ODataFilterQueryVisitor.prototype.UnaryExpression = function(node) {
-              if (node.operator === Q.UnaryOperators.Not) {
-                return "not " + (this.visit(node.operand));
-              } else if (node.operator === Q.UnaryOperators.Negate) {
-                return "(0 sub " + (this.visit(node.operand)) + ")";
-              } else {
-                throw "Unsupported operator " + node.operator;
-              }
-            };
-        
-            ODataFilterQueryVisitor.prototype.BinaryExpression = function(node) {
-              var mapping, op;
-              mapping = {
-                And: 'and',
-                Or: 'or',
-                Add: 'add',
-                Subtract: 'sub',
-                Multiply: 'mul',
-                Divide: 'div',
-                Modulo: 'mod',
-                GreaterThan: 'gt',
-                GreaterThanOrEqual: 'ge',
-                LessThan: 'lt',
-                LessThanOrEqual: 'le',
-                NotEqual: 'ne',
-                Equal: 'eq'
-              };
-              op = mapping[node.operator];
-              if (op) {
-                return "(" + (this.visit(node.left)) + " " + op + " " + (this.visit(node.right)) + ")";
-              } else {
-                throw "Unsupported operator " + node.operator;
-              }
-            };
-        
-            ODataFilterQueryVisitor.prototype.InvocationExpression = function(node) {
-              var mapping, method;
-              mapping = {
-                Length: 'length',
-                ToUpperCase: 'toupper',
-                ToLowerCase: 'tolower',
-                Trim: 'trim',
-                IndexOf: 'indexof',
-                Replace: 'replace',
-                Substring: 'substring',
-                Concat: 'concat',
-                Day: 'day',
-                Month: 'month',
-                Year: 'year',
-                Floor: 'floor',
-                Ceiling: 'ceiling',
-                Round: 'round'
-              };
-              method = mapping[node.method];
-              if (method) {
-                return "" + method + "(" + (this.visit(node.args)) + ")";
-              } else {
-                throw "Invocation of unsupported method " + node.method;
-              }
-            };
-        
-            ODataFilterQueryVisitor.prototype.LiteralExpression = function (node) {
-                var ch, inString, literal, parenBalance, _i, _len, _ref;
-                literal = '';
-                parenBalance = 0;
-                inString = false;
-                _ref = node.queryString;
-                for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-                    ch = _ref[_i];
-                    if (parenBalance < 0) {
-                        break;
-                    } else if (inString) {
-                        literal += ch;
-                        inString = ch !== "'";
-                    } else if (ch === '?') {
-                        if ((!node.args) || (node.args.length <= 0)) {
-                            throw "Too few arguments for " + node.queryString + ".";
-                        }
-                        literal += this.toOData(node.args.shift());
-                    } else if (ch === "'") {
-                        literal += ch;
-                        inString = true;
-                    } else if (ch === '(') {
-                        parenBalance += 1;
-                        literal += ch;
-                    } else if (ch === ')') {
-                        parenBalance -= 1;
-                        literal += ch;
-                    } else {
-                        literal += ch;
-                    }
-                }
-                if (node.args && node.args.length > 0) {
-                    throw "Too many arguments for " + node.queryString;
-                }
-                if (parenBalance !== 0) {
-                    throw "Unbalanced parentheses in " + node.queryString;
-                }
-                if (literal.trim().length > 0) {
-                    return "(" + literal + ")";
-                } else {
-                    return literal;
-                }
-            };
+        ((() => {
+            var ODataFilterQueryVisitor;
+            var ODataProvider;
+            var Q;
+            var Query;
+            var _;
+            var __hasProp = {}.hasOwnProperty;
+            var __extends = (child, parent) => { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-        
-            return ODataFilterQueryVisitor;
-        
-          })(Q.QueryExpressionVisitor);
-        
-        }).call(this);
+            _ = require('./Utilities');
+
+            Q = require('./QueryNodes');
+
+            Query = require('./Query').Query;
+
+            exports.ODataProvider = ODataProvider = ((() => {
+              function ODataProvider() {}
+          
+          
+              /*
+               * Convert a query into an OData URI.
+               */
+          
+              ODataProvider.prototype.toQuery = function(query) {
+                  var odata;
+                  var s;
+                  var url;
+                  odata = this.toOData(query, true);
+                  url = "/" + odata.table;
+                  s = '?';
+                  if (odata.filters) {
+                    url += "" + s + "$filter=" + odata.filters;
+                    s = '&';
+                  }
+                  if (odata.ordering) {
+                    url += "" + s + "$orderby=" + odata.ordering;
+                    s = '&';
+                  }
+                  if (odata.skip) {
+                    url += "" + s + "$skip=" + odata.skip;
+                    s = '&';
+                  }
+                  if (odata.take || odata.take === 0) {
+                    url += "" + s + "$top=" + odata.take;
+                    s = '&';
+                  }
+                  if (odata.selections) {
+                    url += "" + s + "$select=" + odata.selections;
+                    s = '&';
+                  }
+                  if (odata.includeTotalCount) {
+                    url += "" + s + "$inlinecount=allpages";
+                  }
+                  return url;
+              };
+          
+          
+              /*
+               * Translate the query components into OData strings
+               */
+          
+              ODataProvider.prototype.toOData = (query, encodeForUri) => {
+                  var asc;
+                  var components;
+                  var name;
+                  var odata;
+                  var ordering;
+                  var _ref;
+                  var _ref1;
+                  if (encodeForUri == null) {
+                    encodeForUri = false;
+                  }
+                  components = (_ref = query != null ? query.getComponents() : void 0) != null ? _ref : {};
+                  ordering = ((() => {
+                      var _ref1;
+                      var _results;
+                      _ref1 = components != null ? components.ordering : void 0;
+                      _results = [];
+                      for (name in _ref1) {
+                        asc = _ref1[name];
+                        _results.push(asc ? name : "" + name + " desc");
+                      }
+                      return _results;
+                  }))();
+                  return odata = {
+                    table: components != null ? components.table : void 0,
+                    filters: ODataFilterQueryVisitor.convert(components.filters, encodeForUri),
+                    ordering: ordering != null ? ordering.toString() : void 0,
+                    skip: components != null ? components.skip : void 0,
+                    take: components != null ? components.take : void 0,
+                    selections: components != null ? (_ref1 = components.selections) != null ? _ref1.toString() : void 0 : void 0,
+                    includeTotalCount: components != null ? components.includeTotalCount : void 0
+                  };
+              };
+          
+          
+              /*
+               * Convert OData components into a query object
+               */
+          
+              ODataProvider.prototype.fromOData = (table, filters, ordering, skip, take, selections, includeTotalCount) => {
+                  var direction;
+                  var field;
+                  var item;
+                  var query;
+                  var _i;
+                  var _j;
+                  var _len;
+                  var _len1;
+                  var _ref;
+                  var _ref1;
+                  var _ref2;
+                  var _ref3;
+                  query = new Query(table);
+                  if (filters) {
+                    query.where(filters);
+                  }
+                  if (skip || skip === 0) {
+                    query.skip(skip);
+                  }
+                  if (take || take === 0) {
+                    query.take(take);
+                  }
+                  if (includeTotalCount) {
+                    query.includeTotalCount();
+                  }
+                  _ref1 = (_ref = selections != null ? selections.split(',') : void 0) != null ? _ref : [];
+                  for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+                    field = _ref1[_i];
+                    query.select(field.trim());
+                  }
+                  _ref2 = ((() => {
+                      var _k;
+                      var _len1;
+                      var _ref2;
+                      var _ref3;
+                      var _results;
+                      _ref3 = (_ref2 = ordering != null ? ordering.split(',') : void 0) != null ? _ref2 : [];
+                      _results = [];
+                      for (_k = 0, _len1 = _ref3.length; _k < _len1; _k++) {
+                        item = _ref3[_k];
+                        _results.push(item.trim().split(' '));
+                      }
+                      return _results;
+                  }))();
+                  for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
+                    _ref3 = _ref2[_j], field = _ref3[0], direction = _ref3[1];
+                    if ((direction != null ? direction.toUpperCase() : void 0) !== 'DESC') {
+                      query.orderBy(field);
+                    } else {
+                      query.orderByDescending(field);
+                    }
+                  }
+                  return query;
+              };
+          
+              return ODataProvider;
+          
+            }))();
+
+
+            /*
+             * Visitor that converts query expression trees into OData filter statements.
+             */
+
+            ODataFilterQueryVisitor = ((_super => {
+              __extends(ODataFilterQueryVisitor, _super);
+          
+              function ODataFilterQueryVisitor(encodeForUri) {
+                this.encodeForUri = encodeForUri;
+              }
+          
+              ODataFilterQueryVisitor.convert = (filters, encodeForUri) => {
+                  var visitor;
+                  var _ref;
+                  visitor = new ODataFilterQueryVisitor(encodeForUri);
+                  return (_ref = (filters ? visitor.visit(filters) : void 0)) != null ? _ref : null;
+              };
+          
+              ODataFilterQueryVisitor.prototype.toOData = function(value) {
+                var text;
+                if ((_.isNumber(value)) || (_.isBoolean(value))) {
+                  return value.toString();
+                } else if (_.isString(value)) {
+                  value = value.replace(/'/g, "''");
+                  if ((this.encodeForUri != null) && this.encodeForUri === true) {
+                    value = encodeURIComponent(value);
+                  }
+                  return "'" + value + "'";
+                } else if (_.isDate(value)) {
+          
+                  /*
+                   * Dates are expected in the format
+                   *   "datetime'yyyy-mm-ddThh:mm[:ss[.fffffff]]'"
+                   * which JSON.stringify gives us by default
+                   */
+                  text = JSON.stringify(value);
+                  if (text.length > 2) {
+                    text = text.slice(1, +(text.length - 2) + 1 || 9e9);
+                  }
+                  text = text.replace(/(T\d{2}:\d{2}:\d{2})Z$/, (all, time) => {
+                    var msec;
+                    msec = String(value.getMilliseconds() + 1000).substring(1);
+                    return "" + time + "." + msec + "Z";
+                  });
+                  return "datetime'" + text + "'";
+                } else if (!value) {
+                  return "null";
+                } else {
+                  throw "Unsupported literal value " + value;
+                }
+              };
+          
+              ODataFilterQueryVisitor.prototype.ConstantExpression = function(node) {
+                return this.toOData(node.value);
+              };
+          
+              ODataFilterQueryVisitor.prototype.MemberExpression = node => node.member;
+          
+              ODataFilterQueryVisitor.prototype.UnaryExpression = function(node) {
+                if (node.operator === Q.UnaryOperators.Not) {
+                  return "not " + (this.visit(node.operand));
+                } else if (node.operator === Q.UnaryOperators.Negate) {
+                  return "(0 sub " + (this.visit(node.operand)) + ")";
+                } else {
+                  throw "Unsupported operator " + node.operator;
+                }
+              };
+          
+              ODataFilterQueryVisitor.prototype.BinaryExpression = function(node) {
+                  var mapping;
+                  var op;
+                  mapping = {
+                    And: 'and',
+                    Or: 'or',
+                    Add: 'add',
+                    Subtract: 'sub',
+                    Multiply: 'mul',
+                    Divide: 'div',
+                    Modulo: 'mod',
+                    GreaterThan: 'gt',
+                    GreaterThanOrEqual: 'ge',
+                    LessThan: 'lt',
+                    LessThanOrEqual: 'le',
+                    NotEqual: 'ne',
+                    Equal: 'eq'
+                  };
+                  op = mapping[node.operator];
+                  if (op) {
+                    return "(" + (this.visit(node.left)) + " " + op + " " + (this.visit(node.right)) + ")";
+                  } else {
+                    throw "Unsupported operator " + node.operator;
+                  }
+              };
+          
+              ODataFilterQueryVisitor.prototype.InvocationExpression = function(node) {
+                  var mapping;
+                  var method;
+                  mapping = {
+                    Length: 'length',
+                    ToUpperCase: 'toupper',
+                    ToLowerCase: 'tolower',
+                    Trim: 'trim',
+                    IndexOf: 'indexof',
+                    Replace: 'replace',
+                    Substring: 'substring',
+                    Concat: 'concat',
+                    Day: 'day',
+                    Month: 'month',
+                    Year: 'year',
+                    Floor: 'floor',
+                    Ceiling: 'ceiling',
+                    Round: 'round'
+                  };
+                  method = mapping[node.method];
+                  if (method) {
+                    return "" + method + "(" + (this.visit(node.args)) + ")";
+                  } else {
+                    throw "Invocation of unsupported method " + node.method;
+                  }
+              };
+          
+              ODataFilterQueryVisitor.prototype.LiteralExpression = function (node) {
+                  var ch;
+                  var inString;
+                  var literal;
+                  var parenBalance;
+                  var _i;
+                  var _len;
+                  var _ref;
+                  literal = '';
+                  parenBalance = 0;
+                  inString = false;
+                  _ref = node.queryString;
+                  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                      ch = _ref[_i];
+                      if (parenBalance < 0) {
+                          break;
+                      } else if (inString) {
+                          literal += ch;
+                          inString = ch !== "'";
+                      } else if (ch === '?') {
+                          if ((!node.args) || (node.args.length <= 0)) {
+                              throw "Too few arguments for " + node.queryString + ".";
+                          }
+                          literal += this.toOData(node.args.shift());
+                      } else if (ch === "'") {
+                          literal += ch;
+                          inString = true;
+                      } else if (ch === '(') {
+                          parenBalance += 1;
+                          literal += ch;
+                      } else if (ch === ')') {
+                          parenBalance -= 1;
+                          literal += ch;
+                      } else {
+                          literal += ch;
+                      }
+                  }
+                  if (node.args && node.args.length > 0) {
+                      throw "Too many arguments for " + node.queryString;
+                  }
+                  if (parenBalance !== 0) {
+                      throw "Unbalanced parentheses in " + node.queryString;
+                  }
+                  if (literal.trim().length > 0) {
+                      return "(" + literal + ")";
+                  } else {
+                      return literal;
+                  }
+              };
+
+          
+              return ODataFilterQueryVisitor;
+          
+            }))(Q.QueryExpressionVisitor);
+        })).call(this);
     };
 
     $__modules__.PartialEvaluator = function (exports) {
@@ -2381,232 +2518,259 @@
          * ----------------------------------------------------------------------------
          */
         
-        (function() {
-          var IndependenceNominator, JS, PartialEvaluator, _,
-            __hasProp = {}.hasOwnProperty,
-            __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-        
-          _ = require('./Utilities');
-        
-          JS = require('./JavaScriptNodes');
-        
-        
-          /*
-           * Partially evaluate a complex expression in the context of its environment.
-           * This allows us to support arbitrary JavaScript expressions even though we
-           * only explicitly transform a subset of expressions into QueryExpressions.
-           *
-           * For example, assuming we have an expression like (x) -> @id == x + 1 with an
-           * environment where x == 12, then the entire right hand side of the comparison
-           * is independent of any values computed by the query and could be replaced with
-           * the literal value 13.
-           */
-        
-          exports.PartialEvaluator = PartialEvaluator = (function(_super) {
-            __extends(PartialEvaluator, _super);
-        
-            function PartialEvaluator(context) {
-              this.context = context;
-            }
-        
-            PartialEvaluator.prototype.visit = function(node) {
-              var key, params, source, thunk, value, values, _ref, _ref1, _ref2, _ref3;
-              if (!node.__independent || node.type === 'Literal' || (!node.type)) {
-        
-                /*
-                 * If the node isn't independent or it's already a literal, then
-                 * just keep walking the tree
-                 */
-                return PartialEvaluator.__super__.visit.call(this, node);
-              } else {
-        
-                /*
-                 * Otherwse we'll evaluate the node in the context of the
-                 * environment by either looking up identifiers directly or
-                 * evaluating whole sub expressions
-                 */
-                if (node.type === 'Identifier' && this.context.environment[node.name]) {
-                  return new JS.Literal(this.context.environment[node.name]);
-                } else {
-        
-                  /*
-                   * Evaluate the source of the sub expression in the context
-                   * of the environment
-                   */
-                  source = this.context.source.slice(node != null ? (_ref = node.range) != null ? _ref[0] : void 0 : void 0, +((node != null ? (_ref1 = node.range) != null ? _ref1[1] : void 0 : void 0) - 1) + 1 || 9e9);
-                  params = (_ref2 = (function() {
-                    var _ref3, _results;
-                    _ref3 = this.context.environment;
-                    _results = [];
-                    for (key in _ref3) {
-                      value = _ref3[key];
-                      _results.push(key);
-                    }
-                    return _results;
-                  }).call(this)) != null ? _ref2 : [];
-                  values = (_ref3 = (function() {
-                    var _ref4, _results;
-                    _ref4 = this.context.environment;
-                    _results = [];
-                    for (key in _ref4) {
-                      value = _ref4[key];
-                      _results.push(JSON.stringify(value));
-                    }
-                    return _results;
-                  }).call(this)) != null ? _ref3 : [];
-                  thunk = "(function(" + params + ") { return " + source + "; })(" + values + ")";
-                  value = eval(thunk);
-                  return new JS.Literal(value);
-                }
+        ((() => {
+            var IndependenceNominator;
+            var JS;
+            var PartialEvaluator;
+            var _;
+            var __hasProp = {}.hasOwnProperty;
+            var __extends = (child, parent) => { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+            _ = require('./Utilities');
+
+            JS = require('./JavaScriptNodes');
+
+
+            /*
+             * Partially evaluate a complex expression in the context of its environment.
+             * This allows us to support arbitrary JavaScript expressions even though we
+             * only explicitly transform a subset of expressions into QueryExpressions.
+             *
+             * For example, assuming we have an expression like (x) -> @id == x + 1 with an
+             * environment where x == 12, then the entire right hand side of the comparison
+             * is independent of any values computed by the query and could be replaced with
+             * the literal value 13.
+             */
+
+            exports.PartialEvaluator = PartialEvaluator = ((_super => {
+              __extends(PartialEvaluator, _super);
+          
+              function PartialEvaluator(context) {
+                this.context = context;
               }
-            };
-        
-            PartialEvaluator.evaluate = function(context) {
-              var evaluator, nominator;
-              nominator = new IndependenceNominator(context);
-              nominator.visit(context.expression);
-              evaluator = new PartialEvaluator(context);
-              return evaluator.visit(context.expression);
-            };
-        
-            return PartialEvaluator;
-        
-          })(JS.JavaScriptVisitor);
-        
-        
-          /*
-           * Nominate independent nodes in an expression tree that don't depend on any
-           * server side values.
-           */
-        
-          exports.IndependenceNominator = IndependenceNominator = (function(_super) {
-            __extends(IndependenceNominator, _super);
-        
-            function IndependenceNominator(context) {
-              this.context = context;
-            }
-        
-            IndependenceNominator.prototype.Literal = function(node) {
-              IndependenceNominator.__super__.Literal.call(this, node);
-              node.__independent = true;
-              node.__hasThisExp = false;
-              return node;
-            };
-        
-            IndependenceNominator.prototype.ThisExpression = function(node) {
-              IndependenceNominator.__super__.ThisExpression.call(this, node);
-              node.__independent = false;
-              node.__hasThisExp = true;
-              return node;
-            };
-        
-            IndependenceNominator.prototype.Identifier = function(node) {
-              IndependenceNominator.__super__.Identifier.call(this, node);
-              node.__independent = true;
-              node.__hasThisExp = false;
-              return node;
-            };
-        
-            IndependenceNominator.prototype.MemberExpression = function(node) {
-              var _ref;
-              IndependenceNominator.__super__.MemberExpression.call(this, node);
-        
-              /*
-               * Undo independence of identifiers when they're members of this.* or
-               * this.member.* (the latter allows for member functions)
-               */
-              node.__hasThisExp = (_ref = node.object) != null ? _ref.__hasThisExp : void 0;
-              if (node.__hasThisExp) {
-                node.__independent = false;
-                if (node != null) {
-                  node.property.__independent = false;
-                }
-              }
-              return node;
-            };
-        
-            IndependenceNominator.prototype.CallExpression = function(node) {
-              IndependenceNominator.__super__.CallExpression.call(this, node);
-              node.__hasThisExp = node.callee.__hasThisExp;
-              return node;
-            };
-        
-            IndependenceNominator.prototype.ObjectExpression = function(node) {
-              var independence, setter, _i, _j, _len, _len1, _ref, _ref1;
-              IndependenceNominator.__super__.ObjectExpression.call(this, node);
-        
-              /*
-               * Prevent literal key identifiers from being evaluated out of
-               * context
-               */
-              _ref = node.properties;
-              for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-                setter = _ref[_i];
-                setter.key.__independent = false;
-              }
-        
-              /*
-               * An object literal is independent if all of its values are
-               * independent
-               */
-              independence = true;
-              _ref1 = node.properties;
-              for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-                setter = _ref1[_j];
-                independence &= setter.value.__independent;
-              }
-              node.__independent = independence ? true : false;
-              return node;
-            };
-        
-            IndependenceNominator.prototype.visit = function(node) {
-        
-              /*
-               * Call the base visit method which will both visit all of our
-               * subexpressions and also call the couple of overrides above which
-               * handle the base independence cases
-               */
-              var independence, isIndependent, name, v, value, _i, _len;
-              IndependenceNominator.__super__.visit.call(this, node);
-        
-              /*
-               * If the node's independence wasn't determined automatically by the
-               * base cases above, then it's independence is determined by checking
-               * all of its values and aggregating their independence
-               */
-              if (!(Object.prototype.hasOwnProperty.call(node, '__independent'))) {
-                independence = true;
-                isIndependent = function(node) {
+          
+              PartialEvaluator.prototype.visit = function(node) {
+                  var key;
+                  var params;
+                  var source;
+                  var thunk;
+                  var value;
+                  var values;
                   var _ref;
-                  if (_.isObject(node)) {
-                    return (_ref = value.__independent) != null ? _ref : false;
+                  var _ref1;
+                  var _ref2;
+                  var _ref3;
+                  if (!node.__independent || node.type === 'Literal' || (!node.type)) {
+            
+                    /*
+                     * If the node isn't independent or it's already a literal, then
+                     * just keep walking the tree
+                     */
+                    return PartialEvaluator.__super__.visit.call(this, node);
                   } else {
-                    return true;
-                  }
-                };
-                for (name in node) {
-                  value = node[name];
-                  if (_.isArray(value)) {
-                    for (_i = 0, _len = value.length; _i < _len; _i++) {
-                      v = value[_i];
-                      independence &= isIndependent(v);
+            
+                    /*
+                     * Otherwse we'll evaluate the node in the context of the
+                     * environment by either looking up identifiers directly or
+                     * evaluating whole sub expressions
+                     */
+                    if (node.type === 'Identifier' && this.context.environment[node.name]) {
+                      return new JS.Literal(this.context.environment[node.name]);
+                    } else {
+            
+                      /*
+                       * Evaluate the source of the sub expression in the context
+                       * of the environment
+                       */
+                      source = this.context.source.slice(node != null ? (_ref = node.range) != null ? _ref[0] : void 0 : void 0, +((node != null ? (_ref1 = node.range) != null ? _ref1[1] : void 0 : void 0) - 1) + 1 || 9e9);
+                      params = (_ref2 = (function() {
+                          var _ref3;
+                          var _results;
+                          _ref3 = this.context.environment;
+                          _results = [];
+                          for (key in _ref3) {
+                            value = _ref3[key];
+                            _results.push(key);
+                          }
+                          return _results;
+                      }).call(this)) != null ? _ref2 : [];
+                      values = (_ref3 = (function() {
+                          var _ref4;
+                          var _results;
+                          _ref4 = this.context.environment;
+                          _results = [];
+                          for (key in _ref4) {
+                            value = _ref4[key];
+                            _results.push(JSON.stringify(value));
+                          }
+                          return _results;
+                      }).call(this)) != null ? _ref3 : [];
+                      thunk = "(function(" + params + ") { return " + source + "; })(" + values + ")";
+                      value = eval(thunk);
+                      return new JS.Literal(value);
                     }
-                  } else if (_.isObject(value)) {
-                    independence &= isIndependent(value);
+                  }
+              };
+          
+              PartialEvaluator.evaluate = context => {
+                  var evaluator;
+                  var nominator;
+                  nominator = new IndependenceNominator(context);
+                  nominator.visit(context.expression);
+                  evaluator = new PartialEvaluator(context);
+                  return evaluator.visit(context.expression);
+              };
+          
+              return PartialEvaluator;
+          
+            }))(JS.JavaScriptVisitor);
+
+
+            /*
+             * Nominate independent nodes in an expression tree that don't depend on any
+             * server side values.
+             */
+
+            exports.IndependenceNominator = IndependenceNominator = ((_super => {
+              __extends(IndependenceNominator, _super);
+          
+              function IndependenceNominator(context) {
+                this.context = context;
+              }
+          
+              IndependenceNominator.prototype.Literal = function(node) {
+                IndependenceNominator.__super__.Literal.call(this, node);
+                node.__independent = true;
+                node.__hasThisExp = false;
+                return node;
+              };
+          
+              IndependenceNominator.prototype.ThisExpression = function(node) {
+                IndependenceNominator.__super__.ThisExpression.call(this, node);
+                node.__independent = false;
+                node.__hasThisExp = true;
+                return node;
+              };
+          
+              IndependenceNominator.prototype.Identifier = function(node) {
+                IndependenceNominator.__super__.Identifier.call(this, node);
+                node.__independent = true;
+                node.__hasThisExp = false;
+                return node;
+              };
+          
+              IndependenceNominator.prototype.MemberExpression = function(node) {
+                var _ref;
+                IndependenceNominator.__super__.MemberExpression.call(this, node);
+          
+                /*
+                 * Undo independence of identifiers when they're members of this.* or
+                 * this.member.* (the latter allows for member functions)
+                 */
+                node.__hasThisExp = (_ref = node.object) != null ? _ref.__hasThisExp : void 0;
+                if (node.__hasThisExp) {
+                  node.__independent = false;
+                  if (node != null) {
+                    node.property.__independent = false;
                   }
                 }
-        
-                /* &= will turn true/false into 1/0 so we'll turn it back */
-                node.__independent = independence ? true : false;
-              }
-              return node;
-            };
-        
-            return IndependenceNominator;
-        
-          })(JS.JavaScriptVisitor);
-        
-        }).call(this);
+                return node;
+              };
+          
+              IndependenceNominator.prototype.CallExpression = function(node) {
+                IndependenceNominator.__super__.CallExpression.call(this, node);
+                node.__hasThisExp = node.callee.__hasThisExp;
+                return node;
+              };
+          
+              IndependenceNominator.prototype.ObjectExpression = function(node) {
+                  var independence;
+                  var setter;
+                  var _i;
+                  var _j;
+                  var _len;
+                  var _len1;
+                  var _ref;
+                  var _ref1;
+                  IndependenceNominator.__super__.ObjectExpression.call(this, node);
+
+                  /*
+                   * Prevent literal key identifiers from being evaluated out of
+                   * context
+                   */
+                  _ref = node.properties;
+                  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                    setter = _ref[_i];
+                    setter.key.__independent = false;
+                  }
+
+                  /*
+                   * An object literal is independent if all of its values are
+                   * independent
+                   */
+                  independence = true;
+                  _ref1 = node.properties;
+                  for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+                    setter = _ref1[_j];
+                    independence &= setter.value.__independent;
+                  }
+                  node.__independent = independence ? true : false;
+                  return node;
+              };
+          
+              IndependenceNominator.prototype.visit = function(node) {
+                  /*
+                   * Call the base visit method which will both visit all of our
+                   * subexpressions and also call the couple of overrides above which
+                   * handle the base independence cases
+                   */
+                  var independence;
+
+                  var isIndependent;
+                  var name;
+                  var v;
+                  var value;
+                  var _i;
+                  var _len;
+                  IndependenceNominator.__super__.visit.call(this, node);
+
+                  /*
+                   * If the node's independence wasn't determined automatically by the
+                   * base cases above, then it's independence is determined by checking
+                   * all of its values and aggregating their independence
+                   */
+                  if (!(Object.prototype.hasOwnProperty.call(node, '__independent'))) {
+                    independence = true;
+                    isIndependent = node => {
+                      var _ref;
+                      if (_.isObject(node)) {
+                        return (_ref = value.__independent) != null ? _ref : false;
+                      } else {
+                        return true;
+                      }
+                    };
+                    for (name in node) {
+                      value = node[name];
+                      if (_.isArray(value)) {
+                        for (_i = 0, _len = value.length; _i < _len; _i++) {
+                          v = value[_i];
+                          independence &= isIndependent(v);
+                        }
+                      } else if (_.isObject(value)) {
+                        independence &= isIndependent(value);
+                      }
+                    }
+            
+                    /* &= will turn true/false into 1/0 so we'll turn it back */
+                    node.__independent = independence ? true : false;
+                  }
+                  return node;
+              };
+          
+              return IndependenceNominator;
+          
+            }))(JS.JavaScriptVisitor);
+        })).call(this);
     };
 
     $__modules__.Query = function (exports) {
@@ -2621,265 +2785,297 @@
         
         /* Pull in references */
         
-        (function() {
-          var JavaScript, ODataProvider, Q, Query, _,
-            __slice = [].slice;
-        
-          _ = require('./Utilities');
-        
-          Q = require('./QueryNodes');
-        
-          JavaScript = require('./JavaScript').JavaScript;
-        
-        
-          /*
-           * Define a query that can be translated into a desired query language and
-           * executed remotely.
-           */
-        
-          exports.Query = Query = (function() {
-            function Query(table, context) {
-              var _context, _filters, _includeTotalCount, _ordering, _projection, _selections, _skip, _table, _take, _version;
-              if (!table || !(_.isString(table))) {
-                throw 'Expected the name of a table!';
+        ((() => {
+            var JavaScript;
+            var ODataProvider;
+            var Q;
+            var Query;
+            var _;
+            var __slice = [].slice;
+
+            _ = require('./Utilities');
+
+            Q = require('./QueryNodes');
+
+            JavaScript = require('./JavaScript').JavaScript;
+
+
+            /*
+             * Define a query that can be translated into a desired query language and
+             * executed remotely.
+             */
+
+            exports.Query = Query = ((() => {
+              function Query(table, context) {
+                  var _context;
+                  var _filters;
+                  var _includeTotalCount;
+                  var _ordering;
+                  var _projection;
+                  var _selections;
+                  var _skip;
+                  var _table;
+                  var _take;
+                  var _version;
+                  if (!table || !(_.isString(table))) {
+                    throw 'Expected the name of a table!';
+                  }
+
+                  /* Store the table name and any extra context */
+                  _table = table;
+                  _context = context;
+
+                  /* Private Query component members */
+                  _filters = null;
+                  _projection = null;
+                  _selections = [];
+                  _ordering = {};
+                  _skip = null;
+                  _take = null;
+                  _includeTotalCount = false;
+
+                  /*
+                   * Keep a version flag that's updated on each mutation so we can
+                   * track whether changes have been made.  This is to enable caching
+                   * of compiled queries without reevaluating unless necessary.
+                   */
+                  _version = 0;
+
+                  /* Get the individual components of the query */
+                  this.getComponents = () => ({
+                      filters: _filters,
+                      selections: _selections,
+                      projection: _projection,
+                      ordering: _ordering,
+                      skip: _skip,
+                      take: _take,
+                      table: _table,
+                      context: _context,
+                      includeTotalCount: _includeTotalCount,
+                      version: _version
+                  });
+
+                  /*
+                   * Set the individual components of the query (this is primarily
+                   * meant to be used for rehydrating a query).
+                   */
+                  this.setComponents = function(components) {
+                      var _ref;
+                      var _ref1;
+                      var _ref2;
+                      var _ref3;
+                      var _ref4;
+                      var _ref5;
+                      var _ref6;
+                      var _ref7;
+                      var _ref8;
+                      _version++;
+                      _filters = (_ref = components != null ? components.filters : void 0) != null ? _ref : null;
+                      _selections = (_ref1 = components != null ? components.selections : void 0) != null ? _ref1 : [];
+                      _projection = (_ref2 = components != null ? components.projection : void 0) != null ? _ref2 : null;
+                      _ordering = (_ref3 = components != null ? components.ordering : void 0) != null ? _ref3 : {};
+                      _skip = (_ref4 = components != null ? components.skip : void 0) != null ? _ref4 : null;
+                      _take = (_ref5 = components != null ? components.take : void 0) != null ? _ref5 : null;
+                      _includeTotalCount = (_ref6 = components != null ? components.includeTotalCount : void 0) != null ? _ref6 : false;
+                      _table = (_ref7 = components != null ? components.table : void 0) != null ? _ref7 : null;
+                      _context = (_ref8 = components != null ? components.context : void 0) != null ? _ref8 : null;
+                      return this;
+                  };
+
+                  /*
+                   * Add a constraint to a query.  Constraints can take the form of
+                   * a function with a single return statement, key/value pairs of
+                   * equality comparisons, or provider-specific literal strings (note
+                   * that not all providers support literals).
+                   */
+                  this.where = function() {
+                      var args;
+                      var constraint;
+                      var expr;
+                      var name;
+                      var value;
+                      constraint = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+                      _version++;
+
+                      /*
+                       * Translate the constraint from its high level form into a
+                       * QueryExpression tree that can be manipulated by a query
+                       * provider
+                       */
+                      expr = ((() => {
+                        if (_.isFunction(constraint)) {
+                          return JavaScript.transformConstraint(constraint, args);
+                        } else if (_.isObject(constraint)) {
+              
+                          /*
+                           * Turn an object of key value pairs into a series of
+                           * equality expressions that are and'ed together to form
+                           * a single expression
+                           */
+                          return Q.QueryExpression.groupClauses(Q.BinaryOperators.And, ((() => {
+                            var _results;
+                            _results = [];
+                            for (name in constraint) {
+                              value = constraint[name];
+                              _results.push(expr = new Q.BinaryExpression(Q.BinaryOperators.Equal, new Q.MemberExpression(name), new Q.ConstantExpression(value)));
+                            }
+                            return _results;
+                          }))());
+                        } else if (_.isString(constraint)) {
+              
+                          /*
+                           * Store the literal query along with any arguments for
+                           * providers that support basic string replacement (i.e.,
+                           * something like where('name eq ?', 'Steve'))
+                           */
+                          return new Q.LiteralExpression(constraint, args);
+                        } else {
+                          throw "Expected a function, object, or string, not " + constraint;
+                        }
+                      }))();
+
+                      /* Merge the new filters with any existing filters */
+                      _filters = Q.QueryExpression.groupClauses(Q.BinaryOperators.And, [_filters, expr]);
+                      return this;
+                  };
+
+                  /*
+                   * Project the query results.  A projection can either be defined as
+                   * a set of fields that we'll pull back (instead of the entire row)
+                   * or a function that will transform a row into a new type.  If a
+                   * function is used, we'll analyze the function to pull back the
+                   * minimal number of fields required.
+                   */
+                  this.select = function(...args) {
+                      var param;
+                      var parameters;
+                      var projectionOrParameter;
+                      var _i;
+                      var _len;
+                      projectionOrParameter = args[0], parameters = 2 <= args.length ? __slice.call(args, 1) : [];
+                      _version++;
+                      if (_.isString(projectionOrParameter)) {
+              
+                        /* Add all the literal string parameters */
+                        _selections.push(projectionOrParameter);
+                        for (_i = 0, _len = parameters.length; _i < _len; _i++) {
+                          param = parameters[_i];
+                          if (!(_.isString(param))) {
+                            throw "Expected string parameters, not " + param;
+                          }
+                          _selections.push(param);
+                        }
+                      } else if (_.isFunction(projectionOrParameter)) {
+              
+                        /* Set the projection and calculate the fields it uses */
+                        _projection = projectionOrParameter;
+                        _selections = JavaScript.getProjectedFields(_projection);
+                      } else {
+                        throw "Expected a string or a function, not " + projectionOrParameter;
+                      }
+                      return this;
+                  };
+                  this.orderBy = function(...args) {
+                      var param;
+                      var parameters;
+                      var _i;
+                      var _len;
+                      parameters = 1 <= args.length ? __slice.call(args, 0) : [];
+                      _version++;
+                      for (_i = 0, _len = parameters.length; _i < _len; _i++) {
+                        param = parameters[_i];
+                        if (!(_.isString(param))) {
+                          throw "Expected string parameters, not " + param;
+                        }
+                        _ordering[param] = true;
+                      }
+                      return this;
+                  };
+                  this.orderByDescending = function(...args) {
+                      var param;
+                      var parameters;
+                      var _i;
+                      var _len;
+                      parameters = 1 <= args.length ? __slice.call(args, 0) : [];
+                      _version++;
+                      for (_i = 0, _len = parameters.length; _i < _len; _i++) {
+                        param = parameters[_i];
+                        if (!(_.isString(param))) {
+                          throw "Expected string parameters, not " + param;
+                        }
+                        _ordering[param] = false;
+                      }
+                      return this;
+                  };
+                  this.skip = function(count) {
+                    _version++;
+                    if (!(_.isNumber(count))) {
+                      throw "Expected a number, not " + count;
+                    }
+                    _skip = count;
+                    return this;
+                  };
+                  this.take = function(count) {
+                    _version++;
+                    if (!(_.isNumber(count))) {
+                      throw "Expected a number, not " + count;
+                    }
+                    _take = count;
+                    return this;
+                  };
+
+                  /*
+                   * Indicate that the query should include the total count for all the
+                   * records that would have been returned ignoring any take paging
+                   * limit clause specified by client or server.
+                   */
+                  this.includeTotalCount = function() {
+                    _version++;
+                    _includeTotalCount = true;
+                    return this;
+                  };
               }
-        
-              /* Store the table name and any extra context */
-              _table = table;
-              _context = context;
-        
-              /* Private Query component members */
-              _filters = null;
-              _projection = null;
-              _selections = [];
-              _ordering = {};
-              _skip = null;
-              _take = null;
-              _includeTotalCount = false;
-        
+          
+          
               /*
-               * Keep a version flag that's updated on each mutation so we can
-               * track whether changes have been made.  This is to enable caching
-               * of compiled queries without reevaluating unless necessary.
+               * Static method to register custom provider types.  A custom provider is
+               * an object with a toQuery method that takes a Query instance and
+               * returns a compiled query for that provider.
                */
-              _version = 0;
-        
-              /* Get the individual components of the query */
-              this.getComponents = function() {
-                return {
-                  filters: _filters,
-                  selections: _selections,
-                  projection: _projection,
-                  ordering: _ordering,
-                  skip: _skip,
-                  take: _take,
-                  table: _table,
-                  context: _context,
-                  includeTotalCount: _includeTotalCount,
-                  version: _version
+          
+              Query.registerProvider = (name, provider) => {
+                Query.Providers[name] = provider;
+                return Query.prototype["to" + name] = function() {
+                  return provider != null ? typeof provider.toQuery === "function" ? provider.toQuery(this) : void 0 : void 0;
                 };
               };
-        
+          
+          
               /*
-               * Set the individual components of the query (this is primarily
-               * meant to be used for rehydrating a query).
+               * Expose the registered providers via the Query.Providers namespace.
                */
-              this.setComponents = function(components) {
-                var _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
-                _version++;
-                _filters = (_ref = components != null ? components.filters : void 0) != null ? _ref : null;
-                _selections = (_ref1 = components != null ? components.selections : void 0) != null ? _ref1 : [];
-                _projection = (_ref2 = components != null ? components.projection : void 0) != null ? _ref2 : null;
-                _ordering = (_ref3 = components != null ? components.ordering : void 0) != null ? _ref3 : {};
-                _skip = (_ref4 = components != null ? components.skip : void 0) != null ? _ref4 : null;
-                _take = (_ref5 = components != null ? components.take : void 0) != null ? _ref5 : null;
-                _includeTotalCount = (_ref6 = components != null ? components.includeTotalCount : void 0) != null ? _ref6 : false;
-                _table = (_ref7 = components != null ? components.table : void 0) != null ? _ref7 : null;
-                _context = (_ref8 = components != null ? components.context : void 0) != null ? _ref8 : null;
-                return this;
-              };
-        
+          
+              Query.Providers = {};
+          
+          
               /*
-               * Add a constraint to a query.  Constraints can take the form of
-               * a function with a single return statement, key/value pairs of
-               * equality comparisons, or provider-specific literal strings (note
-               * that not all providers support literals).
+               * Expose the query expressions and visitors externally via a
+               * Query.Expressions namespace.
                */
-              this.where = function() {
-                var args, constraint, expr, name, value;
-                constraint = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-                _version++;
-        
-                /*
-                 * Translate the constraint from its high level form into a
-                 * QueryExpression tree that can be manipulated by a query
-                 * provider
-                 */
-                expr = (function() {
-                  if (_.isFunction(constraint)) {
-                    return JavaScript.transformConstraint(constraint, args);
-                  } else if (_.isObject(constraint)) {
-        
-                    /*
-                     * Turn an object of key value pairs into a series of
-                     * equality expressions that are and'ed together to form
-                     * a single expression
-                     */
-                    return Q.QueryExpression.groupClauses(Q.BinaryOperators.And, (function() {
-                      var _results;
-                      _results = [];
-                      for (name in constraint) {
-                        value = constraint[name];
-                        _results.push(expr = new Q.BinaryExpression(Q.BinaryOperators.Equal, new Q.MemberExpression(name), new Q.ConstantExpression(value)));
-                      }
-                      return _results;
-                    })());
-                  } else if (_.isString(constraint)) {
-        
-                    /*
-                     * Store the literal query along with any arguments for
-                     * providers that support basic string replacement (i.e.,
-                     * something like where('name eq ?', 'Steve'))
-                     */
-                    return new Q.LiteralExpression(constraint, args);
-                  } else {
-                    throw "Expected a function, object, or string, not " + constraint;
-                  }
-                })();
-        
-                /* Merge the new filters with any existing filters */
-                _filters = Q.QueryExpression.groupClauses(Q.BinaryOperators.And, [_filters, expr]);
-                return this;
-              };
-        
-              /*
-               * Project the query results.  A projection can either be defined as
-               * a set of fields that we'll pull back (instead of the entire row)
-               * or a function that will transform a row into a new type.  If a
-               * function is used, we'll analyze the function to pull back the
-               * minimal number of fields required.
-               */
-              this.select = function() {
-                var param, parameters, projectionOrParameter, _i, _len;
-                projectionOrParameter = arguments[0], parameters = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-                _version++;
-                if (_.isString(projectionOrParameter)) {
-        
-                  /* Add all the literal string parameters */
-                  _selections.push(projectionOrParameter);
-                  for (_i = 0, _len = parameters.length; _i < _len; _i++) {
-                    param = parameters[_i];
-                    if (!(_.isString(param))) {
-                      throw "Expected string parameters, not " + param;
-                    }
-                    _selections.push(param);
-                  }
-                } else if (_.isFunction(projectionOrParameter)) {
-        
-                  /* Set the projection and calculate the fields it uses */
-                  _projection = projectionOrParameter;
-                  _selections = JavaScript.getProjectedFields(_projection);
-                } else {
-                  throw "Expected a string or a function, not " + projectionOrParameter;
-                }
-                return this;
-              };
-              this.orderBy = function() {
-                var param, parameters, _i, _len;
-                parameters = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-                _version++;
-                for (_i = 0, _len = parameters.length; _i < _len; _i++) {
-                  param = parameters[_i];
-                  if (!(_.isString(param))) {
-                    throw "Expected string parameters, not " + param;
-                  }
-                  _ordering[param] = true;
-                }
-                return this;
-              };
-              this.orderByDescending = function() {
-                var param, parameters, _i, _len;
-                parameters = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-                _version++;
-                for (_i = 0, _len = parameters.length; _i < _len; _i++) {
-                  param = parameters[_i];
-                  if (!(_.isString(param))) {
-                    throw "Expected string parameters, not " + param;
-                  }
-                  _ordering[param] = false;
-                }
-                return this;
-              };
-              this.skip = function(count) {
-                _version++;
-                if (!(_.isNumber(count))) {
-                  throw "Expected a number, not " + count;
-                }
-                _skip = count;
-                return this;
-              };
-              this.take = function(count) {
-                _version++;
-                if (!(_.isNumber(count))) {
-                  throw "Expected a number, not " + count;
-                }
-                _take = count;
-                return this;
-              };
-        
-              /*
-               * Indicate that the query should include the total count for all the
-               * records that would have been returned ignoring any take paging
-               * limit clause specified by client or server.
-               */
-              this.includeTotalCount = function() {
-                _version++;
-                _includeTotalCount = true;
-                return this;
-              };
-            }
-        
-        
-            /*
-             * Static method to register custom provider types.  A custom provider is
-             * an object with a toQuery method that takes a Query instance and
-             * returns a compiled query for that provider.
-             */
-        
-            Query.registerProvider = function(name, provider) {
-              Query.Providers[name] = provider;
-              return Query.prototype["to" + name] = function() {
-                return provider != null ? typeof provider.toQuery === "function" ? provider.toQuery(this) : void 0 : void 0;
-              };
-            };
-        
-        
-            /*
-             * Expose the registered providers via the Query.Providers namespace.
-             */
-        
-            Query.Providers = {};
-        
-        
-            /*
-             * Expose the query expressions and visitors externally via a
-             * Query.Expressions namespace.
-             */
-        
-            Query.Expressions = Q;
-        
-            return Query;
-        
-          })();
-        
-        
-          /* Register the built in OData provider */
-        
-          ODataProvider = require('./ODataProvider').ODataProvider;
-        
-          Query.registerProvider('OData', new ODataProvider);
-        
-        }).call(this);
+          
+              Query.Expressions = Q;
+          
+              return Query;
+          
+            }))();
+
+
+            /* Register the built in OData provider */
+
+            ODataProvider = require('./ODataProvider').ODataProvider;
+
+            Query.registerProvider('OData', new ODataProvider);
+        })).call(this);
     };
 
     $__modules__.QueryNodes = function (exports) {
@@ -2900,294 +3096,301 @@
         
         /* Get the base Node class. */
         
-        (function() {
-          var BinaryExpression, ConstantExpression, InvocationExpression, LiteralExpression, MemberExpression, Node, QueryExpression, QueryExpressionVisitor, UnaryExpression, Visitor, _ref,
-            __hasProp = {}.hasOwnProperty,
-            __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-        
-          _ref = require('./Node'), Node = _ref.Node, Visitor = _ref.Visitor;
-        
-        
-          /*
-           * Provides the base class from which the classes that represent expression tree
-           * nodes are derived.
-           */
-        
-          exports.QueryExpression = QueryExpression = (function(_super) {
-            __extends(QueryExpression, _super);
-        
-            function QueryExpression() {
-              QueryExpression.__super__.constructor.call(this);
-            }
-        
-        
+        ((() => {
+            var BinaryExpression;
+            var ConstantExpression;
+            var InvocationExpression;
+            var LiteralExpression;
+            var MemberExpression;
+            var Node;
+            var QueryExpression;
+            var QueryExpressionVisitor;
+            var UnaryExpression;
+            var Visitor;
+            var _ref;
+            var __hasProp = {}.hasOwnProperty;
+            var __extends = (child, parent) => { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+            _ref = require('./Node'), Node = _ref.Node, Visitor = _ref.Visitor;
+
+
             /*
-             * Group a sequence of clauses together with a given operator (like And
-             * or Or).
+             * Provides the base class from which the classes that represent expression tree
+             * nodes are derived.
              */
-        
-            QueryExpression.groupClauses = function(operator, clauses) {
-              var combine;
-              combine = function(left, right) {
-                if (!left) {
-                  return right;
-                } else if (!right) {
-                  return left;
-                } else {
-                  return new BinaryExpression(operator, left, right);
-                }
+
+            exports.QueryExpression = QueryExpression = ((_super => {
+              __extends(QueryExpression, _super);
+          
+              function QueryExpression() {
+                QueryExpression.__super__.constructor.call(this);
+              }
+          
+          
+              /*
+               * Group a sequence of clauses together with a given operator (like And
+               * or Or).
+               */
+          
+              QueryExpression.groupClauses = (operator, clauses) => {
+                var combine;
+                combine = (left, right) => {
+                  if (!left) {
+                    return right;
+                  } else if (!right) {
+                    return left;
+                  } else {
+                    return new BinaryExpression(operator, left, right);
+                  }
+                };
+                return clauses.reduce(combine, null);
               };
-              return clauses.reduce(combine, null);
+          
+              return QueryExpression;
+          
+            }))(Node);
+
+            exports.QueryExpressionVisitor = QueryExpressionVisitor = ((_super => {
+              __extends(QueryExpressionVisitor, _super);
+          
+              function QueryExpressionVisitor() {
+                QueryExpressionVisitor.__super__.constructor.call(this);
+              }
+          
+              QueryExpressionVisitor.prototype.QueryExpression = node => node;
+          
+              return QueryExpressionVisitor;
+          
+            }))(Visitor);
+
+
+            /*
+             * Represents an expression that has a constant value.
+             */
+
+            exports.ConstantExpression = ConstantExpression = ((_super => {
+              __extends(ConstantExpression, _super);
+          
+          
+              /*
+               * @value: The value of the constant expression.
+               */
+          
+              function ConstantExpression(value) {
+                this.value = value;
+                ConstantExpression.__super__.constructor.call(this);
+              }
+          
+              return ConstantExpression;
+          
+            }))(QueryExpression);
+
+            QueryExpressionVisitor.prototype.ConstantExpression = function(node) {
+              return this.QueryExpression(node);
             };
-        
-            return QueryExpression;
-        
-          })(Node);
-        
-          exports.QueryExpressionVisitor = QueryExpressionVisitor = (function(_super) {
-            __extends(QueryExpressionVisitor, _super);
-        
-            function QueryExpressionVisitor() {
-              QueryExpressionVisitor.__super__.constructor.call(this);
-            }
-        
-            QueryExpressionVisitor.prototype.QueryExpression = function(node) {
+
+
+            /*
+             * Represents accessing a field.
+             */
+
+            exports.MemberExpression = MemberExpression = ((_super => {
+              __extends(MemberExpression, _super);
+          
+          
+              /*
+               * @member: Gets the field to be accessed.
+               */
+          
+              function MemberExpression(member) {
+                this.member = member;
+                MemberExpression.__super__.constructor.call(this);
+              }
+          
+              return MemberExpression;
+          
+            }))(QueryExpression);
+
+            QueryExpressionVisitor.prototype.MemberExpression = function(node) {
+              return this.QueryExpression(node);
+            };
+
+
+            /*
+             * Represents an expression that has a binary operator.
+             */
+
+            exports.BinaryExpression = BinaryExpression = ((_super => {
+              __extends(BinaryExpression, _super);
+          
+          
+              /*
+               * @operator: The operator of the binary expression.
+               * @left: The left operand of the binary operation.
+               * @right: The right operand of the binary operation.
+               */
+          
+              function BinaryExpression(operator, left, right) {
+                this.operator = operator;
+                this.left = left;
+                this.right = right;
+                BinaryExpression.__super__.constructor.call(this);
+              }
+          
+              return BinaryExpression;
+          
+            }))(QueryExpression);
+
+            QueryExpressionVisitor.prototype.BinaryExpression = function(node) {
+              node = this.QueryExpression(node);
+              node.left = this.visit(node.left);
+              node.right = this.visit(node.right);
               return node;
             };
-        
-            return QueryExpressionVisitor;
-        
-          })(Visitor);
-        
-        
-          /*
-           * Represents an expression that has a constant value.
-           */
-        
-          exports.ConstantExpression = ConstantExpression = (function(_super) {
-            __extends(ConstantExpression, _super);
-        
-        
+
+
             /*
-             * @value: The value of the constant expression.
+             * Represents the known binary operators.
              */
-        
-            function ConstantExpression(value) {
-              this.value = value;
-              ConstantExpression.__super__.constructor.call(this);
-            }
-        
-            return ConstantExpression;
-        
-          })(QueryExpression);
-        
-          QueryExpressionVisitor.prototype.ConstantExpression = function(node) {
-            return this.QueryExpression(node);
-          };
-        
-        
-          /*
-           * Represents accessing a field.
-           */
-        
-          exports.MemberExpression = MemberExpression = (function(_super) {
-            __extends(MemberExpression, _super);
-        
-        
+
+            exports.BinaryOperators = {
+              And: 'And',
+              Or: 'Or',
+              Add: 'Add',
+              Subtract: 'Subtract',
+              Multiply: 'Multiply',
+              Divide: 'Divide',
+              Modulo: 'Modulo',
+              GreaterThan: 'GreaterThan',
+              GreaterThanOrEqual: 'GreaterThanOrEqual',
+              LessThan: 'LessThan',
+              LessThanOrEqual: 'LessThanOrEqual',
+              NotEqual: 'NotEqual',
+              Equal: 'Equal'
+            };
+
+
             /*
-             * @member: Gets the field to be accessed.
+             * Represents the known unary operators.
              */
-        
-            function MemberExpression(member) {
-              this.member = member;
-              MemberExpression.__super__.constructor.call(this);
-            }
-        
-            return MemberExpression;
-        
-          })(QueryExpression);
-        
-          QueryExpressionVisitor.prototype.MemberExpression = function(node) {
-            return this.QueryExpression(node);
-          };
-        
-        
-          /*
-           * Represents an expression that has a binary operator.
-           */
-        
-          exports.BinaryExpression = BinaryExpression = (function(_super) {
-            __extends(BinaryExpression, _super);
-        
-        
+
+            exports.UnaryExpression = UnaryExpression = ((_super => {
+              __extends(UnaryExpression, _super);
+          
+          
+              /*
+               * @operator: The operator of the unary expression.
+               * @operand: The operand of the unary expression.
+               */
+          
+              function UnaryExpression(operator, operand) {
+                this.operator = operator;
+                this.operand = operand;
+                UnaryExpression.__super__.constructor.call(this);
+              }
+          
+              return UnaryExpression;
+          
+            }))(QueryExpression);
+
+            QueryExpressionVisitor.prototype.UnaryExpression = function(node) {
+              node = this.QueryExpression(node);
+              node.operand = this.visit(node.operand);
+              return node;
+            };
+
+
             /*
-             * @operator: The operator of the binary expression.
-             * @left: The left operand of the binary operation.
-             * @right: The right operand of the binary operation.
+             * Represents the known unary operators.
              */
-        
-            function BinaryExpression(operator, left, right) {
-              this.operator = operator;
-              this.left = left;
-              this.right = right;
-              BinaryExpression.__super__.constructor.call(this);
-            }
-        
-            return BinaryExpression;
-        
-          })(QueryExpression);
-        
-          QueryExpressionVisitor.prototype.BinaryExpression = function(node) {
-            node = this.QueryExpression(node);
-            node.left = this.visit(node.left);
-            node.right = this.visit(node.right);
-            return node;
-          };
-        
-        
-          /*
-           * Represents the known binary operators.
-           */
-        
-          exports.BinaryOperators = {
-            And: 'And',
-            Or: 'Or',
-            Add: 'Add',
-            Subtract: 'Subtract',
-            Multiply: 'Multiply',
-            Divide: 'Divide',
-            Modulo: 'Modulo',
-            GreaterThan: 'GreaterThan',
-            GreaterThanOrEqual: 'GreaterThanOrEqual',
-            LessThan: 'LessThan',
-            LessThanOrEqual: 'LessThanOrEqual',
-            NotEqual: 'NotEqual',
-            Equal: 'Equal'
-          };
-        
-        
-          /*
-           * Represents the known unary operators.
-           */
-        
-          exports.UnaryExpression = UnaryExpression = (function(_super) {
-            __extends(UnaryExpression, _super);
-        
-        
+
+            exports.UnaryOperators = {
+              Not: 'Not',
+              Negate: 'Negate',
+              Increment: 'Increment',
+              Decrement: 'Decrement'
+            };
+
+
             /*
-             * @operator: The operator of the unary expression.
-             * @operand: The operand of the unary expression.
+             * Represents a method invocation.
              */
-        
-            function UnaryExpression(operator, operand) {
-              this.operator = operator;
-              this.operand = operand;
-              UnaryExpression.__super__.constructor.call(this);
-            }
-        
-            return UnaryExpression;
-        
-          })(QueryExpression);
-        
-          QueryExpressionVisitor.prototype.UnaryExpression = function(node) {
-            node = this.QueryExpression(node);
-            node.operand = this.visit(node.operand);
-            return node;
-          };
-        
-        
-          /*
-           * Represents the known unary operators.
-           */
-        
-          exports.UnaryOperators = {
-            Not: 'Not',
-            Negate: 'Negate',
-            Increment: 'Increment',
-            Decrement: 'Decrement'
-          };
-        
-        
-          /*
-           * Represents a method invocation.
-           */
-        
-          exports.InvocationExpression = InvocationExpression = (function(_super) {
-            __extends(InvocationExpression, _super);
-        
-        
+
+            exports.InvocationExpression = InvocationExpression = ((_super => {
+              __extends(InvocationExpression, _super);
+          
+          
+              /*
+               * @method: The name of the method to invoke.
+               * @args: The arguments to the method.
+               */
+          
+              function InvocationExpression(method, args) {
+                this.method = method;
+                this.args = args;
+                InvocationExpression.__super__.constructor.call(this);
+              }
+          
+              return InvocationExpression;
+          
+            }))(QueryExpression);
+
+            QueryExpressionVisitor.prototype.InvocationExpression = function(node) {
+              node = this.QueryExpression(node);
+              node.args = this.visit(node.args);
+              return node;
+            };
+
+
             /*
-             * @method: The name of the method to invoke.
-             * @args: The arguments to the method.
+             * Represents the known unary operators.
              */
-        
-            function InvocationExpression(method, args) {
-              this.method = method;
-              this.args = args;
-              InvocationExpression.__super__.constructor.call(this);
-            }
-        
-            return InvocationExpression;
-        
-          })(QueryExpression);
-        
-          QueryExpressionVisitor.prototype.InvocationExpression = function(node) {
-            node = this.QueryExpression(node);
-            node.args = this.visit(node.args);
-            return node;
-          };
-        
-        
-          /*
-           * Represents the known unary operators.
-           */
-        
-          exports.Methods = {
-            Length: 'Length',
-            ToUpperCase: 'ToUpperCase',
-            ToLowerCase: 'ToLowerCase',
-            Trim: 'Trim',
-            IndexOf: 'IndexOf',
-            Replace: 'Replace',
-            Substring: 'Substring',
-            Concat: 'Concat',
-            Day: 'Day',
-            Month: 'Month',
-            Year: 'Year',
-            Floor: 'Floor',
-            Ceiling: 'Ceiling',
-            Round: 'Round'
-          };
-        
-        
-          /*
-           * Represents a literal string in the query language.
-           */
-        
-          exports.LiteralExpression = LiteralExpression = (function(_super) {
-            __extends(LiteralExpression, _super);
-        
-        
+
+            exports.Methods = {
+              Length: 'Length',
+              ToUpperCase: 'ToUpperCase',
+              ToLowerCase: 'ToLowerCase',
+              Trim: 'Trim',
+              IndexOf: 'IndexOf',
+              Replace: 'Replace',
+              Substring: 'Substring',
+              Concat: 'Concat',
+              Day: 'Day',
+              Month: 'Month',
+              Year: 'Year',
+              Floor: 'Floor',
+              Ceiling: 'Ceiling',
+              Round: 'Round'
+            };
+
+
             /*
-             * @queryString
-             * @args
+             * Represents a literal string in the query language.
              */
-        
-            function LiteralExpression(queryString, args) {
-              this.queryString = queryString;
-              this.args = args != null ? args : [];
-              LiteralExpression.__super__.constructor.call(this);
-            }
-        
-            return LiteralExpression;
-        
-          })(QueryExpression);
-        
-          QueryExpressionVisitor.prototype.LiteralExpression = function(node) {
-            return this.QueryExpression(node);
-          };
-        
-        }).call(this);
+
+            exports.LiteralExpression = LiteralExpression = ((_super => {
+              __extends(LiteralExpression, _super);
+          
+          
+              /*
+               * @queryString
+               * @args
+               */
+          
+              function LiteralExpression(queryString, args) {
+                this.queryString = queryString;
+                this.args = args != null ? args : [];
+                LiteralExpression.__super__.constructor.call(this);
+              }
+          
+              return LiteralExpression;
+          
+            }))(QueryExpression);
+
+            QueryExpressionVisitor.prototype.LiteralExpression = function(node) {
+              return this.QueryExpression(node);
+            };
+        })).call(this);
     };
 
     $__modules__.Utilities = function (exports) {
@@ -3199,121 +3402,117 @@
          * ----------------------------------------------------------------------------
          */
         
-        (function() {
-          var classOf,
-            __slice = [].slice;
-        
-          classOf = function(obj) {
-            return Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
-          };
-        
-          if (Array.prototype.reduce == null) {
-            Array.prototype.reduce = function() {
-              var accumulator, array, arrayLength, currentIndex, currentValue, moreArgs;
-              accumulator = arguments[0], moreArgs = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-              array = this;
-              arrayLength = array.length;
-              currentIndex = 0;
-              currentValue = void 0;
-              if (array == null) {
-                throw new TypeError("Object is null or undefined");
-              }
-              if (typeof accumulator !== "function") {
-                throw new TypeError("First argument is not callable");
-              }
-              if (moreArgs.length === 0) {
-                if (arrayLength === 0) {
-                  throw new TypeError("Array length is 0 and no second argument");
-                } else {
-                  currentValue = array[0];
-                  currentIndex = 1;
-                }
-              } else {
-                currentValue = moreArgs[0];
-              }
-              while (currentIndex < arrayLength) {
-                if (currentIndex in array) {
-                  currentValue = accumulator.call(void 0, currentValue, array[currentIndex], array);
-                }
-                ++currentIndex;
-              }
-              return currentValue;
-            };
-          }
-        
-          if (Array.prototype.map == null) {
-            Array.prototype.map = function(callback, thisArg) {
-              var elem, index, inputArray, len, outputArray, _i, _len;
-              if (typeof this === "undefined" || this === null) {
-                throw new TypeError("this is null or not defined");
-              }
-              if (typeof callback !== "function") {
-                throw new TypeError(callback + " is not a function");
-              }
-              thisArg = thisArg ? thisArg : void 0;
-              inputArray = Object(this);
-              len = inputArray.length >>> 0;
-              outputArray = new Array(len);
-              for (index = _i = 0, _len = inputArray.length; _i < _len; index = ++_i) {
-                elem = inputArray[index];
-                if (index in inputArray) {
-                  outputArray[index] = callback.call(thisArg, elem, index, inputArray);
-                }
-              }
-              return outputArray;
-            };
-          }
-        
-          if (Array.isArray == null) {
-            Array.isArray = function(vArg) {
-              return Object.prototype.toString.call(vArg) === "[object Array]";
-            };
-          }
-        
-          exports.isObject = function(obj) {
-            return Object.prototype.toString.call(obj).slice(8, -1).toLowerCase() === 'object';
-          };
-        
-          exports.isString = function(obj) {
-            return typeof obj === 'string';
-          };
-        
-          exports.isFunction = function(obj) {
-            return typeof obj === 'function';
-          };
-        
-          exports.isArray = Array.isArray;
-        
-          exports.isNumber = function(obj) {
-            return typeof obj === 'number';
-          };
-        
-          exports.isBoolean = function(obj) {
-            return typeof obj === 'boolean';
-          };
-        
-          exports.isDate = function(obj) {
-            return classOf(obj) === 'date';
-          };
-        
-          exports.functionName = function(fn) {
-            var index, prefix, source;
-            if (typeof Function.prototype.name === 'function') {
-              return Function.prototype.name.call(fn);
-            } else {
-              source = fn.toString();
-              prefix = 'function ';
-              if (source.slice(0, +(prefix.length - 1) + 1 || 9e9) === prefix) {
-                index = source.indexOf('(', prefix.length);
-                if (index > prefix.length) {
-                  return source.slice(prefix.length, +(index - 1) + 1 || 9e9);
-                }
-              }
-              return null;
+        ((() => {
+            var classOf;
+            var __slice = [].slice;
+
+            classOf = obj => Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
+
+            if (Array.prototype.reduce == null) {
+              Array.prototype.reduce = function(...args) {
+                  var accumulator;
+                  var array;
+                  var arrayLength;
+                  var currentIndex;
+                  var currentValue;
+                  var moreArgs;
+                  accumulator = args[0], moreArgs = 2 <= args.length ? __slice.call(args, 1) : [];
+                  array = this;
+                  arrayLength = array.length;
+                  currentIndex = 0;
+                  currentValue = void 0;
+                  if (array == null) {
+                    throw new TypeError("Object is null or undefined");
+                  }
+                  if (typeof accumulator !== "function") {
+                    throw new TypeError("First argument is not callable");
+                  }
+                  if (moreArgs.length === 0) {
+                    if (arrayLength === 0) {
+                      throw new TypeError("Array length is 0 and no second argument");
+                    } else {
+                      currentValue = array[0];
+                      currentIndex = 1;
+                    }
+                  } else {
+                    currentValue = moreArgs[0];
+                  }
+                  while (currentIndex < arrayLength) {
+                    if (currentIndex in array) {
+                      currentValue = accumulator.call(void 0, currentValue, array[currentIndex], array);
+                    }
+                    ++currentIndex;
+                  }
+                  return currentValue;
+              };
             }
-          };
-        
-        }).call(this);
+
+            if (Array.prototype.map == null) {
+              Array.prototype.map = function(callback, thisArg) {
+                  var elem;
+                  var index;
+                  var inputArray;
+                  var len;
+                  var outputArray;
+                  var _i;
+                  var _len;
+                  if (typeof this === "undefined" || this === null) {
+                    throw new TypeError("this is null or not defined");
+                  }
+                  if (typeof callback !== "function") {
+                    throw new TypeError(callback + " is not a function");
+                  }
+                  thisArg = thisArg ? thisArg : void 0;
+                  inputArray = Object(this);
+                  len = inputArray.length >>> 0;
+                  outputArray = new Array(len);
+                  for (index = _i = 0, _len = inputArray.length; _i < _len; index = ++_i) {
+                    elem = inputArray[index];
+                    if (index in inputArray) {
+                      outputArray[index] = callback.call(thisArg, elem, index, inputArray);
+                    }
+                  }
+                  return outputArray;
+              };
+            }
+
+            if (Array.isArray == null) {
+              Array.isArray = vArg => Object.prototype.toString.call(vArg) === "[object Array]";
+            }
+
+            exports.isObject = obj => Object.prototype.toString.call(obj).slice(8, -1).toLowerCase() === 'object';
+
+            exports.isString = obj => typeof obj === 'string';
+
+            exports.isFunction = obj => typeof obj === 'function';
+
+            exports.isArray = Array.isArray;
+
+            exports.isNumber = obj => typeof obj === 'number';
+
+            exports.isBoolean = obj => typeof obj === 'boolean';
+
+            exports.isDate = obj => classOf(obj) === 'date';
+
+            exports.functionName = fn => {
+                var index;
+                var prefix;
+                var source;
+                if (typeof Function.prototype.name === 'function') {
+                  return Function.prototype.name.call(fn);
+                } else {
+                  source = fn.toString();
+                  prefix = 'function ';
+                  if (source.slice(0, +(prefix.length - 1) + 1 || 9e9) === prefix) {
+                    index = source.indexOf('(', prefix.length);
+                    if (index > prefix.length) {
+                      return source.slice(prefix.length, +(index - 1) + 1 || 9e9);
+                    }
+                  }
+                  return null;
+                }
+            };
+        })).call(this);
     };
 
     $__modules__.esprima = function (exports) {
@@ -3360,7 +3559,7 @@
         parseUnaryExpression: true,
         parseStatement: true, parseSourceElement: true */
         
-        (function (root, factory) {
+        (((root, factory) => {
             'use strict';
         
             // Universal Module Definition (UMD) to support AMD, CommonJS/Node.js,
@@ -3372,28 +3571,28 @@
             } else {
                 factory((root.esprima = {}));
             }
-        }(this, function (exports) {
+        })(this, exports => {
             'use strict';
-        
-            var Token,
-                TokenName,
-                FnExprTokens,
-                Syntax,
-                PropertyKind,
-                Messages,
-                Regex,
-                SyntaxTreeDelegate,
-                source,
-                strict,
-                index,
-                lineNumber,
-                lineStart,
-                length,
-                delegate,
-                lookahead,
-                state,
-                extra;
-        
+
+            var Token;
+            var TokenName;
+            var FnExprTokens;
+            var Syntax;
+            var PropertyKind;
+            var Messages;
+            var Regex;
+            var SyntaxTreeDelegate;
+            var source;
+            var strict;
+            var index;
+            var lineNumber;
+            var lineStart;
+            var length;
+            var delegate;
+            var lookahead;
+            var state;
+            var extra;
+
             Token = {
                 BooleanLiteral: 1,
                 EOF: 2,
@@ -3405,7 +3604,7 @@
                 StringLiteral: 8,
                 RegularExpression: 9
             };
-        
+
             TokenName = {};
             TokenName[Token.BooleanLiteral] = 'Boolean';
             TokenName[Token.EOF] = '<end>';
@@ -3416,7 +3615,7 @@
             TokenName[Token.Punctuator] = 'Punctuator';
             TokenName[Token.StringLiteral] = 'String';
             TokenName[Token.RegularExpression] = 'RegularExpression';
-        
+
             // A function following one of those tokens is an expression.
             FnExprTokens = ['(', '{', '[', 'in', 'typeof', 'instanceof', 'new',
                             'return', 'case', 'delete', 'throw', 'void',
@@ -3427,7 +3626,7 @@
                             '+', '-', '*', '/', '%', '++', '--', '<<', '>>', '>>>', '&',
                             '|', '^', '!', '~', '&&', '||', '?', ':', '===', '==', '>=',
                             '<=', '<', '>', '!=', '!=='];
-        
+
             Syntax = {
                 AssignmentExpression: 'AssignmentExpression',
                 ArrayExpression: 'ArrayExpression',
@@ -3470,13 +3669,13 @@
                 WhileStatement: 'WhileStatement',
                 WithStatement: 'WithStatement'
             };
-        
+
             PropertyKind = {
                 Data: 1,
                 Get: 2,
                 Set: 4
             };
-        
+
             // Error messages should be identical to V8.
             Messages = {
                 UnexpectedToken:  'Unexpected token %0',
@@ -3513,39 +3712,39 @@
                 StrictLHSPrefix:  'Prefix increment/decrement may not have eval or arguments operand in strict mode',
                 StrictReservedWord:  'Use of future reserved word in strict mode'
             };
-        
+
             // See also tools/generate-unicode-regex.py.
             Regex = {
                 NonAsciiIdentifierStart: new RegExp('[\xaa\xb5\xba\xc0-\xd6\xd8-\xf6\xf8-\u02c1\u02c6-\u02d1\u02e0-\u02e4\u02ec\u02ee\u0370-\u0374\u0376\u0377\u037a-\u037d\u0386\u0388-\u038a\u038c\u038e-\u03a1\u03a3-\u03f5\u03f7-\u0481\u048a-\u0527\u0531-\u0556\u0559\u0561-\u0587\u05d0-\u05ea\u05f0-\u05f2\u0620-\u064a\u066e\u066f\u0671-\u06d3\u06d5\u06e5\u06e6\u06ee\u06ef\u06fa-\u06fc\u06ff\u0710\u0712-\u072f\u074d-\u07a5\u07b1\u07ca-\u07ea\u07f4\u07f5\u07fa\u0800-\u0815\u081a\u0824\u0828\u0840-\u0858\u08a0\u08a2-\u08ac\u0904-\u0939\u093d\u0950\u0958-\u0961\u0971-\u0977\u0979-\u097f\u0985-\u098c\u098f\u0990\u0993-\u09a8\u09aa-\u09b0\u09b2\u09b6-\u09b9\u09bd\u09ce\u09dc\u09dd\u09df-\u09e1\u09f0\u09f1\u0a05-\u0a0a\u0a0f\u0a10\u0a13-\u0a28\u0a2a-\u0a30\u0a32\u0a33\u0a35\u0a36\u0a38\u0a39\u0a59-\u0a5c\u0a5e\u0a72-\u0a74\u0a85-\u0a8d\u0a8f-\u0a91\u0a93-\u0aa8\u0aaa-\u0ab0\u0ab2\u0ab3\u0ab5-\u0ab9\u0abd\u0ad0\u0ae0\u0ae1\u0b05-\u0b0c\u0b0f\u0b10\u0b13-\u0b28\u0b2a-\u0b30\u0b32\u0b33\u0b35-\u0b39\u0b3d\u0b5c\u0b5d\u0b5f-\u0b61\u0b71\u0b83\u0b85-\u0b8a\u0b8e-\u0b90\u0b92-\u0b95\u0b99\u0b9a\u0b9c\u0b9e\u0b9f\u0ba3\u0ba4\u0ba8-\u0baa\u0bae-\u0bb9\u0bd0\u0c05-\u0c0c\u0c0e-\u0c10\u0c12-\u0c28\u0c2a-\u0c33\u0c35-\u0c39\u0c3d\u0c58\u0c59\u0c60\u0c61\u0c85-\u0c8c\u0c8e-\u0c90\u0c92-\u0ca8\u0caa-\u0cb3\u0cb5-\u0cb9\u0cbd\u0cde\u0ce0\u0ce1\u0cf1\u0cf2\u0d05-\u0d0c\u0d0e-\u0d10\u0d12-\u0d3a\u0d3d\u0d4e\u0d60\u0d61\u0d7a-\u0d7f\u0d85-\u0d96\u0d9a-\u0db1\u0db3-\u0dbb\u0dbd\u0dc0-\u0dc6\u0e01-\u0e30\u0e32\u0e33\u0e40-\u0e46\u0e81\u0e82\u0e84\u0e87\u0e88\u0e8a\u0e8d\u0e94-\u0e97\u0e99-\u0e9f\u0ea1-\u0ea3\u0ea5\u0ea7\u0eaa\u0eab\u0ead-\u0eb0\u0eb2\u0eb3\u0ebd\u0ec0-\u0ec4\u0ec6\u0edc-\u0edf\u0f00\u0f40-\u0f47\u0f49-\u0f6c\u0f88-\u0f8c\u1000-\u102a\u103f\u1050-\u1055\u105a-\u105d\u1061\u1065\u1066\u106e-\u1070\u1075-\u1081\u108e\u10a0-\u10c5\u10c7\u10cd\u10d0-\u10fa\u10fc-\u1248\u124a-\u124d\u1250-\u1256\u1258\u125a-\u125d\u1260-\u1288\u128a-\u128d\u1290-\u12b0\u12b2-\u12b5\u12b8-\u12be\u12c0\u12c2-\u12c5\u12c8-\u12d6\u12d8-\u1310\u1312-\u1315\u1318-\u135a\u1380-\u138f\u13a0-\u13f4\u1401-\u166c\u166f-\u167f\u1681-\u169a\u16a0-\u16ea\u16ee-\u16f0\u1700-\u170c\u170e-\u1711\u1720-\u1731\u1740-\u1751\u1760-\u176c\u176e-\u1770\u1780-\u17b3\u17d7\u17dc\u1820-\u1877\u1880-\u18a8\u18aa\u18b0-\u18f5\u1900-\u191c\u1950-\u196d\u1970-\u1974\u1980-\u19ab\u19c1-\u19c7\u1a00-\u1a16\u1a20-\u1a54\u1aa7\u1b05-\u1b33\u1b45-\u1b4b\u1b83-\u1ba0\u1bae\u1baf\u1bba-\u1be5\u1c00-\u1c23\u1c4d-\u1c4f\u1c5a-\u1c7d\u1ce9-\u1cec\u1cee-\u1cf1\u1cf5\u1cf6\u1d00-\u1dbf\u1e00-\u1f15\u1f18-\u1f1d\u1f20-\u1f45\u1f48-\u1f4d\u1f50-\u1f57\u1f59\u1f5b\u1f5d\u1f5f-\u1f7d\u1f80-\u1fb4\u1fb6-\u1fbc\u1fbe\u1fc2-\u1fc4\u1fc6-\u1fcc\u1fd0-\u1fd3\u1fd6-\u1fdb\u1fe0-\u1fec\u1ff2-\u1ff4\u1ff6-\u1ffc\u2071\u207f\u2090-\u209c\u2102\u2107\u210a-\u2113\u2115\u2119-\u211d\u2124\u2126\u2128\u212a-\u212d\u212f-\u2139\u213c-\u213f\u2145-\u2149\u214e\u2160-\u2188\u2c00-\u2c2e\u2c30-\u2c5e\u2c60-\u2ce4\u2ceb-\u2cee\u2cf2\u2cf3\u2d00-\u2d25\u2d27\u2d2d\u2d30-\u2d67\u2d6f\u2d80-\u2d96\u2da0-\u2da6\u2da8-\u2dae\u2db0-\u2db6\u2db8-\u2dbe\u2dc0-\u2dc6\u2dc8-\u2dce\u2dd0-\u2dd6\u2dd8-\u2dde\u2e2f\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303c\u3041-\u3096\u309d-\u309f\u30a1-\u30fa\u30fc-\u30ff\u3105-\u312d\u3131-\u318e\u31a0-\u31ba\u31f0-\u31ff\u3400-\u4db5\u4e00-\u9fcc\ua000-\ua48c\ua4d0-\ua4fd\ua500-\ua60c\ua610-\ua61f\ua62a\ua62b\ua640-\ua66e\ua67f-\ua697\ua6a0-\ua6ef\ua717-\ua71f\ua722-\ua788\ua78b-\ua78e\ua790-\ua793\ua7a0-\ua7aa\ua7f8-\ua801\ua803-\ua805\ua807-\ua80a\ua80c-\ua822\ua840-\ua873\ua882-\ua8b3\ua8f2-\ua8f7\ua8fb\ua90a-\ua925\ua930-\ua946\ua960-\ua97c\ua984-\ua9b2\ua9cf\uaa00-\uaa28\uaa40-\uaa42\uaa44-\uaa4b\uaa60-\uaa76\uaa7a\uaa80-\uaaaf\uaab1\uaab5\uaab6\uaab9-\uaabd\uaac0\uaac2\uaadb-\uaadd\uaae0-\uaaea\uaaf2-\uaaf4\uab01-\uab06\uab09-\uab0e\uab11-\uab16\uab20-\uab26\uab28-\uab2e\uabc0-\uabe2\uac00-\ud7a3\ud7b0-\ud7c6\ud7cb-\ud7fb\uf900-\ufa6d\ufa70-\ufad9\ufb00-\ufb06\ufb13-\ufb17\ufb1d\ufb1f-\ufb28\ufb2a-\ufb36\ufb38-\ufb3c\ufb3e\ufb40\ufb41\ufb43\ufb44\ufb46-\ufbb1\ufbd3-\ufd3d\ufd50-\ufd8f\ufd92-\ufdc7\ufdf0-\ufdfb\ufe70-\ufe74\ufe76-\ufefc\uff21-\uff3a\uff41-\uff5a\uff66-\uffbe\uffc2-\uffc7\uffca-\uffcf\uffd2-\uffd7\uffda-\uffdc]'),
                 NonAsciiIdentifierPart: new RegExp('[\xaa\xb5\xba\xc0-\xd6\xd8-\xf6\xf8-\u02c1\u02c6-\u02d1\u02e0-\u02e4\u02ec\u02ee\u0300-\u0374\u0376\u0377\u037a-\u037d\u0386\u0388-\u038a\u038c\u038e-\u03a1\u03a3-\u03f5\u03f7-\u0481\u0483-\u0487\u048a-\u0527\u0531-\u0556\u0559\u0561-\u0587\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7\u05d0-\u05ea\u05f0-\u05f2\u0610-\u061a\u0620-\u0669\u066e-\u06d3\u06d5-\u06dc\u06df-\u06e8\u06ea-\u06fc\u06ff\u0710-\u074a\u074d-\u07b1\u07c0-\u07f5\u07fa\u0800-\u082d\u0840-\u085b\u08a0\u08a2-\u08ac\u08e4-\u08fe\u0900-\u0963\u0966-\u096f\u0971-\u0977\u0979-\u097f\u0981-\u0983\u0985-\u098c\u098f\u0990\u0993-\u09a8\u09aa-\u09b0\u09b2\u09b6-\u09b9\u09bc-\u09c4\u09c7\u09c8\u09cb-\u09ce\u09d7\u09dc\u09dd\u09df-\u09e3\u09e6-\u09f1\u0a01-\u0a03\u0a05-\u0a0a\u0a0f\u0a10\u0a13-\u0a28\u0a2a-\u0a30\u0a32\u0a33\u0a35\u0a36\u0a38\u0a39\u0a3c\u0a3e-\u0a42\u0a47\u0a48\u0a4b-\u0a4d\u0a51\u0a59-\u0a5c\u0a5e\u0a66-\u0a75\u0a81-\u0a83\u0a85-\u0a8d\u0a8f-\u0a91\u0a93-\u0aa8\u0aaa-\u0ab0\u0ab2\u0ab3\u0ab5-\u0ab9\u0abc-\u0ac5\u0ac7-\u0ac9\u0acb-\u0acd\u0ad0\u0ae0-\u0ae3\u0ae6-\u0aef\u0b01-\u0b03\u0b05-\u0b0c\u0b0f\u0b10\u0b13-\u0b28\u0b2a-\u0b30\u0b32\u0b33\u0b35-\u0b39\u0b3c-\u0b44\u0b47\u0b48\u0b4b-\u0b4d\u0b56\u0b57\u0b5c\u0b5d\u0b5f-\u0b63\u0b66-\u0b6f\u0b71\u0b82\u0b83\u0b85-\u0b8a\u0b8e-\u0b90\u0b92-\u0b95\u0b99\u0b9a\u0b9c\u0b9e\u0b9f\u0ba3\u0ba4\u0ba8-\u0baa\u0bae-\u0bb9\u0bbe-\u0bc2\u0bc6-\u0bc8\u0bca-\u0bcd\u0bd0\u0bd7\u0be6-\u0bef\u0c01-\u0c03\u0c05-\u0c0c\u0c0e-\u0c10\u0c12-\u0c28\u0c2a-\u0c33\u0c35-\u0c39\u0c3d-\u0c44\u0c46-\u0c48\u0c4a-\u0c4d\u0c55\u0c56\u0c58\u0c59\u0c60-\u0c63\u0c66-\u0c6f\u0c82\u0c83\u0c85-\u0c8c\u0c8e-\u0c90\u0c92-\u0ca8\u0caa-\u0cb3\u0cb5-\u0cb9\u0cbc-\u0cc4\u0cc6-\u0cc8\u0cca-\u0ccd\u0cd5\u0cd6\u0cde\u0ce0-\u0ce3\u0ce6-\u0cef\u0cf1\u0cf2\u0d02\u0d03\u0d05-\u0d0c\u0d0e-\u0d10\u0d12-\u0d3a\u0d3d-\u0d44\u0d46-\u0d48\u0d4a-\u0d4e\u0d57\u0d60-\u0d63\u0d66-\u0d6f\u0d7a-\u0d7f\u0d82\u0d83\u0d85-\u0d96\u0d9a-\u0db1\u0db3-\u0dbb\u0dbd\u0dc0-\u0dc6\u0dca\u0dcf-\u0dd4\u0dd6\u0dd8-\u0ddf\u0df2\u0df3\u0e01-\u0e3a\u0e40-\u0e4e\u0e50-\u0e59\u0e81\u0e82\u0e84\u0e87\u0e88\u0e8a\u0e8d\u0e94-\u0e97\u0e99-\u0e9f\u0ea1-\u0ea3\u0ea5\u0ea7\u0eaa\u0eab\u0ead-\u0eb9\u0ebb-\u0ebd\u0ec0-\u0ec4\u0ec6\u0ec8-\u0ecd\u0ed0-\u0ed9\u0edc-\u0edf\u0f00\u0f18\u0f19\u0f20-\u0f29\u0f35\u0f37\u0f39\u0f3e-\u0f47\u0f49-\u0f6c\u0f71-\u0f84\u0f86-\u0f97\u0f99-\u0fbc\u0fc6\u1000-\u1049\u1050-\u109d\u10a0-\u10c5\u10c7\u10cd\u10d0-\u10fa\u10fc-\u1248\u124a-\u124d\u1250-\u1256\u1258\u125a-\u125d\u1260-\u1288\u128a-\u128d\u1290-\u12b0\u12b2-\u12b5\u12b8-\u12be\u12c0\u12c2-\u12c5\u12c8-\u12d6\u12d8-\u1310\u1312-\u1315\u1318-\u135a\u135d-\u135f\u1380-\u138f\u13a0-\u13f4\u1401-\u166c\u166f-\u167f\u1681-\u169a\u16a0-\u16ea\u16ee-\u16f0\u1700-\u170c\u170e-\u1714\u1720-\u1734\u1740-\u1753\u1760-\u176c\u176e-\u1770\u1772\u1773\u1780-\u17d3\u17d7\u17dc\u17dd\u17e0-\u17e9\u180b-\u180d\u1810-\u1819\u1820-\u1877\u1880-\u18aa\u18b0-\u18f5\u1900-\u191c\u1920-\u192b\u1930-\u193b\u1946-\u196d\u1970-\u1974\u1980-\u19ab\u19b0-\u19c9\u19d0-\u19d9\u1a00-\u1a1b\u1a20-\u1a5e\u1a60-\u1a7c\u1a7f-\u1a89\u1a90-\u1a99\u1aa7\u1b00-\u1b4b\u1b50-\u1b59\u1b6b-\u1b73\u1b80-\u1bf3\u1c00-\u1c37\u1c40-\u1c49\u1c4d-\u1c7d\u1cd0-\u1cd2\u1cd4-\u1cf6\u1d00-\u1de6\u1dfc-\u1f15\u1f18-\u1f1d\u1f20-\u1f45\u1f48-\u1f4d\u1f50-\u1f57\u1f59\u1f5b\u1f5d\u1f5f-\u1f7d\u1f80-\u1fb4\u1fb6-\u1fbc\u1fbe\u1fc2-\u1fc4\u1fc6-\u1fcc\u1fd0-\u1fd3\u1fd6-\u1fdb\u1fe0-\u1fec\u1ff2-\u1ff4\u1ff6-\u1ffc\u200c\u200d\u203f\u2040\u2054\u2071\u207f\u2090-\u209c\u20d0-\u20dc\u20e1\u20e5-\u20f0\u2102\u2107\u210a-\u2113\u2115\u2119-\u211d\u2124\u2126\u2128\u212a-\u212d\u212f-\u2139\u213c-\u213f\u2145-\u2149\u214e\u2160-\u2188\u2c00-\u2c2e\u2c30-\u2c5e\u2c60-\u2ce4\u2ceb-\u2cf3\u2d00-\u2d25\u2d27\u2d2d\u2d30-\u2d67\u2d6f\u2d7f-\u2d96\u2da0-\u2da6\u2da8-\u2dae\u2db0-\u2db6\u2db8-\u2dbe\u2dc0-\u2dc6\u2dc8-\u2dce\u2dd0-\u2dd6\u2dd8-\u2dde\u2de0-\u2dff\u2e2f\u3005-\u3007\u3021-\u302f\u3031-\u3035\u3038-\u303c\u3041-\u3096\u3099\u309a\u309d-\u309f\u30a1-\u30fa\u30fc-\u30ff\u3105-\u312d\u3131-\u318e\u31a0-\u31ba\u31f0-\u31ff\u3400-\u4db5\u4e00-\u9fcc\ua000-\ua48c\ua4d0-\ua4fd\ua500-\ua60c\ua610-\ua62b\ua640-\ua66f\ua674-\ua67d\ua67f-\ua697\ua69f-\ua6f1\ua717-\ua71f\ua722-\ua788\ua78b-\ua78e\ua790-\ua793\ua7a0-\ua7aa\ua7f8-\ua827\ua840-\ua873\ua880-\ua8c4\ua8d0-\ua8d9\ua8e0-\ua8f7\ua8fb\ua900-\ua92d\ua930-\ua953\ua960-\ua97c\ua980-\ua9c0\ua9cf-\ua9d9\uaa00-\uaa36\uaa40-\uaa4d\uaa50-\uaa59\uaa60-\uaa76\uaa7a\uaa7b\uaa80-\uaac2\uaadb-\uaadd\uaae0-\uaaef\uaaf2-\uaaf6\uab01-\uab06\uab09-\uab0e\uab11-\uab16\uab20-\uab26\uab28-\uab2e\uabc0-\uabea\uabec\uabed\uabf0-\uabf9\uac00-\ud7a3\ud7b0-\ud7c6\ud7cb-\ud7fb\uf900-\ufa6d\ufa70-\ufad9\ufb00-\ufb06\ufb13-\ufb17\ufb1d-\ufb28\ufb2a-\ufb36\ufb38-\ufb3c\ufb3e\ufb40\ufb41\ufb43\ufb44\ufb46-\ufbb1\ufbd3-\ufd3d\ufd50-\ufd8f\ufd92-\ufdc7\ufdf0-\ufdfb\ufe00-\ufe0f\ufe20-\ufe26\ufe33\ufe34\ufe4d-\ufe4f\ufe70-\ufe74\ufe76-\ufefc\uff10-\uff19\uff21-\uff3a\uff3f\uff41-\uff5a\uff66-\uffbe\uffc2-\uffc7\uffca-\uffcf\uffd2-\uffd7\uffda-\uffdc]')
             };
-        
+
             // Ensure the condition is true, otherwise throw an error.
             // This is only to have a better contract semantic, i.e. another safety net
             // to catch a logic error. The condition shall be fulfilled in normal case.
             // Do NOT use this to enforce a certain condition on any user input.
-        
+
             function assert(condition, message) {
                 if (!condition) {
                     throw new Error('ASSERT: ' + message);
                 }
             }
-        
+
             function isDecimalDigit(ch) {
                 return (ch >= 48 && ch <= 57);   // 0..9
             }
-        
+
             function isHexDigit(ch) {
                 return '0123456789abcdefABCDEF'.indexOf(ch) >= 0;
             }
-        
+
             function isOctalDigit(ch) {
                 return '01234567'.indexOf(ch) >= 0;
             }
-        
-        
+
+
             // 7.2 White Space
-        
+
             function isWhiteSpace(ch) {
                 return (ch === 32) ||  // space
                     (ch === 9) ||      // tab
@@ -3554,15 +3753,15 @@
                     (ch === 0xA0) ||
                     (ch >= 0x1680 && '\u1680\u180E\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000\uFEFF'.indexOf(String.fromCharCode(ch)) > 0);
             }
-        
+
             // 7.3 Line Terminators
-        
+
             function isLineTerminator(ch) {
                 return (ch === 10) || (ch === 13) || (ch === 0x2028) || (ch === 0x2029);
             }
-        
+
             // 7.6 Identifier Names and Identifiers
-        
+
             function isIdentifierStart(ch) {
                 return (ch === 36) || (ch === 95) ||  // $ (dollar) and _ (underscore)
                     (ch >= 65 && ch <= 90) ||         // A..Z
@@ -3570,7 +3769,7 @@
                     (ch === 92) ||                    // \ (backslash)
                     ((ch >= 0x80) && Regex.NonAsciiIdentifierStart.test(String.fromCharCode(ch)));
             }
-        
+
             function isIdentifierPart(ch) {
                 return (ch === 36) || (ch === 95) ||  // $ (dollar) and _ (underscore)
                     (ch >= 65 && ch <= 90) ||         // A..Z
@@ -3579,9 +3778,9 @@
                     (ch === 92) ||                    // \ (backslash)
                     ((ch >= 0x80) && Regex.NonAsciiIdentifierPart.test(String.fromCharCode(ch)));
             }
-        
+
             // 7.6.1.2 Future Reserved Words
-        
+
             function isFutureReservedWord(id) {
                 switch (id) {
                 case 'class':
@@ -3595,7 +3794,7 @@
                     return false;
                 }
             }
-        
+
             function isStrictModeReservedWord(id) {
                 switch (id) {
                 case 'implements':
@@ -3612,13 +3811,13 @@
                     return false;
                 }
             }
-        
+
             function isRestrictedWord(id) {
                 return id === 'eval' || id === 'arguments';
             }
-        
+
             // 7.6.1.1 Keywords
-        
+
             function isKeyword(id) {
                 if (strict && isStrictModeReservedWord(id)) {
                     return true;
@@ -3654,9 +3853,9 @@
                     return false;
                 }
             }
-        
+
             // 7.4 Comments
-        
+
             function addComment(type, value, start, end, loc) {
                 var comment;
         
@@ -3672,8 +3871,8 @@
                 state.lastCommentStart = start;
         
                 comment = {
-                    type: type,
-                    value: value
+                    type,
+                    value
                 };
                 if (extra.range) {
                     comment.range = [start, end];
@@ -3683,10 +3882,13 @@
                 }
                 extra.comments.push(comment);
             }
-        
+
             function skipSingleLineComment() {
-                var start, loc, ch, comment;
-        
+                var start;
+                var loc;
+                var ch;
+                var comment;
+
                 start = index - 2;
                 loc = {
                     start: {
@@ -3694,7 +3896,7 @@
                         column: index - lineStart - 2
                     }
                 };
-        
+
                 while (index < length) {
                     ch = source.charCodeAt(index);
                     ++index;
@@ -3715,7 +3917,7 @@
                         return;
                     }
                 }
-        
+
                 if (extra.comments) {
                     comment = source.slice(start + 2, index);
                     loc.end = {
@@ -3725,10 +3927,13 @@
                     addComment('Line', comment, start, index, loc);
                 }
             }
-        
+
             function skipMultiLineComment() {
-                var start, loc, ch, comment;
-        
+                var start;
+                var loc;
+                var ch;
+                var comment;
+
                 if (extra.comments) {
                     start = index - 2;
                     loc = {
@@ -3738,7 +3943,7 @@
                         }
                     };
                 }
-        
+
                 while (index < length) {
                     ch = source.charCodeAt(index);
                     if (isLineTerminator(ch)) {
@@ -3771,10 +3976,10 @@
                         ++index;
                     }
                 }
-        
+
                 throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
             }
-        
+
             function skipComment() {
                 var ch;
         
@@ -3808,10 +4013,13 @@
                     }
                 }
             }
-        
+
             function scanHexEscape(prefix) {
-                var i, len, ch, code = 0;
-        
+                var i;
+                var len;
+                var ch;
+                var code = 0;
+
                 len = (prefix === 'u') ? 4 : 2;
                 for (i = 0; i < len; ++i) {
                     if (index < length && isHexDigit(source[index])) {
@@ -3823,13 +4031,14 @@
                 }
                 return String.fromCharCode(code);
             }
-        
+
             function getEscapedIdentifier() {
-                var ch, id;
-        
+                var ch;
+                var id;
+
                 ch = source.charCodeAt(index++);
                 id = String.fromCharCode(ch);
-        
+
                 // '\u' (char #92, char #117) denotes an escaped character.
                 if (ch === 92) {
                     if (source.charCodeAt(index) !== 117) {
@@ -3842,7 +4051,7 @@
                     }
                     id = ch;
                 }
-        
+
                 while (index < length) {
                     ch = source.charCodeAt(index);
                     if (!isIdentifierPart(ch)) {
@@ -3865,13 +4074,14 @@
                         id += ch;
                     }
                 }
-        
+
                 return id;
             }
-        
+
             function getIdentifier() {
-                var start, ch;
-        
+                var start;
+                var ch;
+
                 start = index++;
                 while (index < length) {
                     ch = source.charCodeAt(index);
@@ -3886,18 +4096,20 @@
                         break;
                     }
                 }
-        
+
                 return source.slice(start, index);
             }
-        
+
             function scanIdentifier() {
-                var start, id, type;
-        
+                var start;
+                var id;
+                var type;
+
                 start = index;
-        
+
                 // Backslash (char #92) starts an escaped character.
                 id = (source.charCodeAt(index) === 92) ? getEscapedIdentifier() : getIdentifier();
-        
+
                 // There is no keyword or literal with only one character.
                 // Thus, it must be an identifier.
                 if (id.length === 1) {
@@ -3911,28 +4123,28 @@
                 } else {
                     type = Token.Identifier;
                 }
-        
+
                 return {
-                    type: type,
+                    type,
                     value: id,
-                    lineNumber: lineNumber,
-                    lineStart: lineStart,
+                    lineNumber,
+                    lineStart,
                     range: [start, index]
                 };
             }
-        
-        
+
+
             // 7.7 Punctuators
-        
+
             function scanPunctuator() {
-                var start = index,
-                    code = source.charCodeAt(index),
-                    code2,
-                    ch1 = source[index],
-                    ch2,
-                    ch3,
-                    ch4;
-        
+                var start = index;
+                var code = source.charCodeAt(index);
+                var code2;
+                var ch1 = source[index];
+                var ch2;
+                var ch3;
+                var ch4;
+
                 switch (code) {
         
                 // Check for most common single-character punctuators.
@@ -3959,8 +4171,8 @@
                     return {
                         type: Token.Punctuator,
                         value: String.fromCharCode(code),
-                        lineNumber: lineNumber,
-                        lineStart: lineStart,
+                        lineNumber,
+                        lineStart,
                         range: [start, index]
                     };
         
@@ -3984,8 +4196,8 @@
                             return {
                                 type: Token.Punctuator,
                                 value: String.fromCharCode(code) + String.fromCharCode(code2),
-                                lineNumber: lineNumber,
-                                lineStart: lineStart,
+                                lineNumber,
+                                lineStart,
                                 range: [start, index]
                             };
         
@@ -4000,8 +4212,8 @@
                             return {
                                 type: Token.Punctuator,
                                 value: source.slice(start, index),
-                                lineNumber: lineNumber,
-                                lineStart: lineStart,
+                                lineNumber,
+                                lineStart,
                                 range: [start, index]
                             };
                         default:
@@ -4010,92 +4222,92 @@
                     }
                     break;
                 }
-        
+
                 // Peek more characters.
-        
+
                 ch2 = source[index + 1];
                 ch3 = source[index + 2];
                 ch4 = source[index + 3];
-        
+
                 // 4-character punctuator: >>>=
-        
+
                 if (ch1 === '>' && ch2 === '>' && ch3 === '>') {
                     if (ch4 === '=') {
                         index += 4;
                         return {
                             type: Token.Punctuator,
                             value: '>>>=',
-                            lineNumber: lineNumber,
-                            lineStart: lineStart,
+                            lineNumber,
+                            lineStart,
                             range: [start, index]
                         };
                     }
                 }
-        
+
                 // 3-character punctuators: === !== >>> <<= >>=
-        
+
                 if (ch1 === '>' && ch2 === '>' && ch3 === '>') {
                     index += 3;
                     return {
                         type: Token.Punctuator,
                         value: '>>>',
-                        lineNumber: lineNumber,
-                        lineStart: lineStart,
+                        lineNumber,
+                        lineStart,
                         range: [start, index]
                     };
                 }
-        
+
                 if (ch1 === '<' && ch2 === '<' && ch3 === '=') {
                     index += 3;
                     return {
                         type: Token.Punctuator,
                         value: '<<=',
-                        lineNumber: lineNumber,
-                        lineStart: lineStart,
+                        lineNumber,
+                        lineStart,
                         range: [start, index]
                     };
                 }
-        
+
                 if (ch1 === '>' && ch2 === '>' && ch3 === '=') {
                     index += 3;
                     return {
                         type: Token.Punctuator,
                         value: '>>=',
-                        lineNumber: lineNumber,
-                        lineStart: lineStart,
+                        lineNumber,
+                        lineStart,
                         range: [start, index]
                     };
                 }
-        
+
                 // Other 2-character punctuators: ++ -- << >> && ||
-        
+
                 if (ch1 === ch2 && ('+-<>&|'.indexOf(ch1) >= 0)) {
                     index += 2;
                     return {
                         type: Token.Punctuator,
                         value: ch1 + ch2,
-                        lineNumber: lineNumber,
-                        lineStart: lineStart,
+                        lineNumber,
+                        lineStart,
                         range: [start, index]
                     };
                 }
-        
+
                 if ('<>=!+-*%&|^/'.indexOf(ch1) >= 0) {
                     ++index;
                     return {
                         type: Token.Punctuator,
                         value: ch1,
-                        lineNumber: lineNumber,
-                        lineStart: lineStart,
+                        lineNumber,
+                        lineStart,
                         range: [start, index]
                     };
                 }
-        
+
                 throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
             }
-        
+
             // 7.8.3 Numeric Literals
-        
+
             function scanHexLiteral(start) {
                 var number = '';
         
@@ -4117,12 +4329,12 @@
                 return {
                     type: Token.NumericLiteral,
                     value: parseInt('0x' + number, 16),
-                    lineNumber: lineNumber,
-                    lineStart: lineStart,
+                    lineNumber,
+                    lineStart,
                     range: [start, index]
                 };
             }
-        
+
             function scanOctalLiteral(start) {
                 var number = '0' + source[index++];
                 while (index < length) {
@@ -4140,19 +4352,21 @@
                     type: Token.NumericLiteral,
                     value: parseInt(number, 8),
                     octal: true,
-                    lineNumber: lineNumber,
-                    lineStart: lineStart,
+                    lineNumber,
+                    lineStart,
                     range: [start, index]
                 };
             }
-        
+
             function scanNumericLiteral() {
-                var number, start, ch;
-        
+                var number;
+                var start;
+                var ch;
+
                 ch = source[index];
                 assert(isDecimalDigit(ch.charCodeAt(0)) || (ch === '.'),
                     'Numeric literal must start with a decimal digit or a decimal point');
-        
+
                 start = index;
                 number = '';
                 if (ch !== '.') {
@@ -4181,7 +4395,7 @@
                     }
                     ch = source[index];
                 }
-        
+
                 if (ch === '.') {
                     number += source[index++];
                     while (isDecimalDigit(source.charCodeAt(index))) {
@@ -4189,7 +4403,7 @@
                     }
                     ch = source[index];
                 }
-        
+
                 if (ch === 'e' || ch === 'E') {
                     number += source[index++];
         
@@ -4205,32 +4419,39 @@
                         throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
                     }
                 }
-        
+
                 if (isIdentifierStart(source.charCodeAt(index))) {
                     throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
                 }
-        
+
                 return {
                     type: Token.NumericLiteral,
                     value: parseFloat(number),
-                    lineNumber: lineNumber,
-                    lineStart: lineStart,
+                    lineNumber,
+                    lineStart,
                     range: [start, index]
                 };
             }
-        
+
             // 7.8.4 String Literals
-        
+
             function scanStringLiteral() {
-                var str = '', quote, start, ch, code, unescaped, restore, octal = false;
-        
+                var str = '';
+                var quote;
+                var start;
+                var ch;
+                var code;
+                var unescaped;
+                var restore;
+                var octal = false;
+
                 quote = source[index];
                 assert((quote === '\'' || quote === '"'),
                     'String literal must starts with a quote');
-        
+
                 start = index;
                 ++index;
-        
+
                 while (index < length) {
                     ch = source[index++];
         
@@ -4310,32 +4531,40 @@
                         str += ch;
                     }
                 }
-        
+
                 if (quote !== '') {
                     throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
                 }
-        
+
                 return {
                     type: Token.StringLiteral,
                     value: str,
-                    octal: octal,
-                    lineNumber: lineNumber,
-                    lineStart: lineStart,
+                    octal,
+                    lineNumber,
+                    lineStart,
                     range: [start, index]
                 };
             }
-        
+
             function scanRegExp() {
-                var str, ch, start, pattern, flags, value, classMarker = false, restore, terminated = false;
-        
+                var str;
+                var ch;
+                var start;
+                var pattern;
+                var flags;
+                var value;
+                var classMarker = false;
+                var restore;
+                var terminated = false;
+
                 lookahead = null;
                 skipComment();
-        
+
                 start = index;
                 ch = source[index];
                 assert(ch === '/', 'Regular expression literal must start with a slash');
                 str = source[index++];
-        
+
                 while (index < length) {
                     ch = source[index++];
                     str += ch;
@@ -4361,14 +4590,14 @@
                         }
                     }
                 }
-        
+
                 if (!terminated) {
                     throwError({}, Messages.UnterminatedRegExp);
                 }
-        
+
                 // Exclude leading and trailing slash.
                 pattern = str.substr(1, str.length - 2);
-        
+
                 flags = '';
                 while (index < length) {
                     ch = source[index];
@@ -4401,42 +4630,42 @@
                         str += ch;
                     }
                 }
-        
+
                 try {
                     value = new RegExp(pattern, flags);
                 } catch (e) {
                     throwError({}, Messages.InvalidRegExp);
                 }
-        
+
                 peek();
-        
-        
+
+
                 if (extra.tokenize) {
                     return {
                         type: Token.RegularExpression,
-                        value: value,
-                        lineNumber: lineNumber,
-                        lineStart: lineStart,
+                        value,
+                        lineNumber,
+                        lineStart,
                         range: [start, index]
                     };
                 }
                 return {
                     literal: str,
-                    value: value,
+                    value,
                     range: [start, index]
                 };
             }
-        
+
             function isIdentifierName(token) {
                 return token.type === Token.Identifier ||
                     token.type === Token.Keyword ||
                     token.type === Token.BooleanLiteral ||
                     token.type === Token.NullLiteral;
             }
-        
+
             function advanceSlash() {
-                var prevToken,
-                    checkToken;
+                var prevToken;
+                var checkToken;
                 // Using the following algorithm:
                 // https://github.com/mozilla/sweet.js/wiki/design
                 prevToken = extra.tokens[extra.tokens.length - 1];
@@ -4493,7 +4722,7 @@
                 }
                 return scanPunctuator();
             }
-        
+
             function advance() {
                 var ch;
         
@@ -4502,8 +4731,8 @@
                 if (index >= length) {
                     return {
                         type: Token.EOF,
-                        lineNumber: lineNumber,
-                        lineStart: lineStart,
+                        lineNumber,
+                        lineStart,
                         range: [index, index]
                     };
                 }
@@ -4544,7 +4773,7 @@
         
                 return scanPunctuator();
             }
-        
+
             function lex() {
                 var token;
         
@@ -4561,10 +4790,12 @@
         
                 return token;
             }
-        
+
             function peek() {
-                var pos, line, start;
-        
+                var pos;
+                var line;
+                var start;
+
                 pos = index;
                 line = lineNumber;
                 start = lineStart;
@@ -4573,12 +4804,12 @@
                 lineNumber = line;
                 lineStart = start;
             }
-        
+
             SyntaxTreeDelegate = {
         
                 name: 'SyntaxTree',
         
-                markStart: function () {
+                markStart() {
                     if (extra.loc) {
                         state.markerStack.push(index - lineStart);
                         state.markerStack.push(lineNumber);
@@ -4588,7 +4819,7 @@
                     }
                 },
         
-                markEnd: function (node) {
+                markEnd(node) {
                     if (extra.range) {
                         node.range = [state.markerStack.pop(), index];
                     }
@@ -4608,7 +4839,7 @@
                     return node;
                 },
         
-                markEndIf: function (node) {
+                markEndIf(node) {
                     if (node.range || node.loc) {
                         if (extra.loc) {
                             state.markerStack.pop();
@@ -4623,184 +4854,184 @@
                     return node;
                 },
         
-                postProcess: function (node) {
+                postProcess(node) {
                     if (extra.source) {
                         node.loc.source = extra.source;
                     }
                     return node;
                 },
         
-                createArrayExpression: function (elements) {
+                createArrayExpression(elements) {
                     return {
                         type: Syntax.ArrayExpression,
-                        elements: elements
+                        elements
                     };
                 },
         
-                createAssignmentExpression: function (operator, left, right) {
+                createAssignmentExpression(operator, left, right) {
                     return {
                         type: Syntax.AssignmentExpression,
-                        operator: operator,
-                        left: left,
-                        right: right
+                        operator,
+                        left,
+                        right
                     };
                 },
         
-                createBinaryExpression: function (operator, left, right) {
+                createBinaryExpression(operator, left, right) {
                     var type = (operator === '||' || operator === '&&') ? Syntax.LogicalExpression :
                                 Syntax.BinaryExpression;
                     return {
-                        type: type,
-                        operator: operator,
-                        left: left,
-                        right: right
+                        type,
+                        operator,
+                        left,
+                        right
                     };
                 },
         
-                createBlockStatement: function (body) {
+                createBlockStatement(body) {
                     return {
                         type: Syntax.BlockStatement,
-                        body: body
+                        body
                     };
                 },
         
-                createBreakStatement: function (label) {
+                createBreakStatement(label) {
                     return {
                         type: Syntax.BreakStatement,
-                        label: label
+                        label
                     };
                 },
         
-                createCallExpression: function (callee, args) {
+                createCallExpression(callee, args) {
                     return {
                         type: Syntax.CallExpression,
-                        callee: callee,
+                        callee,
                         'arguments': args
                     };
                 },
         
-                createCatchClause: function (param, body) {
+                createCatchClause(param, body) {
                     return {
                         type: Syntax.CatchClause,
-                        param: param,
-                        body: body
+                        param,
+                        body
                     };
                 },
         
-                createConditionalExpression: function (test, consequent, alternate) {
+                createConditionalExpression(test, consequent, alternate) {
                     return {
                         type: Syntax.ConditionalExpression,
-                        test: test,
-                        consequent: consequent,
-                        alternate: alternate
+                        test,
+                        consequent,
+                        alternate
                     };
                 },
         
-                createContinueStatement: function (label) {
+                createContinueStatement(label) {
                     return {
                         type: Syntax.ContinueStatement,
-                        label: label
+                        label
                     };
                 },
         
-                createDebuggerStatement: function () {
+                createDebuggerStatement() {
                     return {
                         type: Syntax.DebuggerStatement
                     };
                 },
         
-                createDoWhileStatement: function (body, test) {
+                createDoWhileStatement(body, test) {
                     return {
                         type: Syntax.DoWhileStatement,
-                        body: body,
-                        test: test
+                        body,
+                        test
                     };
                 },
         
-                createEmptyStatement: function () {
+                createEmptyStatement() {
                     return {
                         type: Syntax.EmptyStatement
                     };
                 },
         
-                createExpressionStatement: function (expression) {
+                createExpressionStatement(expression) {
                     return {
                         type: Syntax.ExpressionStatement,
-                        expression: expression
+                        expression
                     };
                 },
         
-                createForStatement: function (init, test, update, body) {
+                createForStatement(init, test, update, body) {
                     return {
                         type: Syntax.ForStatement,
-                        init: init,
-                        test: test,
-                        update: update,
-                        body: body
+                        init,
+                        test,
+                        update,
+                        body
                     };
                 },
         
-                createForInStatement: function (left, right, body) {
+                createForInStatement(left, right, body) {
                     return {
                         type: Syntax.ForInStatement,
-                        left: left,
-                        right: right,
-                        body: body,
+                        left,
+                        right,
+                        body,
                         each: false
                     };
                 },
         
-                createFunctionDeclaration: function (id, params, defaults, body) {
+                createFunctionDeclaration(id, params, defaults, body) {
                     return {
                         type: Syntax.FunctionDeclaration,
-                        id: id,
-                        params: params,
-                        defaults: defaults,
-                        body: body,
+                        id,
+                        params,
+                        defaults,
+                        body,
                         rest: null,
                         generator: false,
                         expression: false
                     };
                 },
         
-                createFunctionExpression: function (id, params, defaults, body) {
+                createFunctionExpression(id, params, defaults, body) {
                     return {
                         type: Syntax.FunctionExpression,
-                        id: id,
-                        params: params,
-                        defaults: defaults,
-                        body: body,
+                        id,
+                        params,
+                        defaults,
+                        body,
                         rest: null,
                         generator: false,
                         expression: false
                     };
                 },
         
-                createIdentifier: function (name) {
+                createIdentifier(name) {
                     return {
                         type: Syntax.Identifier,
-                        name: name
+                        name
                     };
                 },
         
-                createIfStatement: function (test, consequent, alternate) {
+                createIfStatement(test, consequent, alternate) {
                     return {
                         type: Syntax.IfStatement,
-                        test: test,
-                        consequent: consequent,
-                        alternate: alternate
+                        test,
+                        consequent,
+                        alternate
                     };
                 },
         
-                createLabeledStatement: function (label, body) {
+                createLabeledStatement(label, body) {
                     return {
                         type: Syntax.LabeledStatement,
-                        label: label,
-                        body: body
+                        label,
+                        body
                     };
                 },
         
-                createLiteral: function (token) {
+                createLiteral(token) {
                     return {
                         type: Syntax.Literal,
                         value: token.value,
@@ -4808,163 +5039,166 @@
                     };
                 },
         
-                createMemberExpression: function (accessor, object, property) {
+                createMemberExpression(accessor, object, property) {
                     return {
                         type: Syntax.MemberExpression,
                         computed: accessor === '[',
-                        object: object,
-                        property: property
+                        object,
+                        property
                     };
                 },
         
-                createNewExpression: function (callee, args) {
+                createNewExpression(callee, args) {
                     return {
                         type: Syntax.NewExpression,
-                        callee: callee,
+                        callee,
                         'arguments': args
                     };
                 },
         
-                createObjectExpression: function (properties) {
+                createObjectExpression(properties) {
                     return {
                         type: Syntax.ObjectExpression,
-                        properties: properties
+                        properties
                     };
                 },
         
-                createPostfixExpression: function (operator, argument) {
+                createPostfixExpression(operator, argument) {
                     return {
                         type: Syntax.UpdateExpression,
-                        operator: operator,
-                        argument: argument,
+                        operator,
+                        argument,
                         prefix: false
                     };
                 },
         
-                createProgram: function (body) {
+                createProgram(body) {
                     return {
                         type: Syntax.Program,
-                        body: body
+                        body
                     };
                 },
         
-                createProperty: function (kind, key, value) {
+                createProperty(kind, key, value) {
                     return {
                         type: Syntax.Property,
-                        key: key,
-                        value: value,
-                        kind: kind
+                        key,
+                        value,
+                        kind
                     };
                 },
         
-                createReturnStatement: function (argument) {
+                createReturnStatement(argument) {
                     return {
                         type: Syntax.ReturnStatement,
-                        argument: argument
+                        argument
                     };
                 },
         
-                createSequenceExpression: function (expressions) {
+                createSequenceExpression(expressions) {
                     return {
                         type: Syntax.SequenceExpression,
-                        expressions: expressions
+                        expressions
                     };
                 },
         
-                createSwitchCase: function (test, consequent) {
+                createSwitchCase(test, consequent) {
                     return {
                         type: Syntax.SwitchCase,
-                        test: test,
-                        consequent: consequent
+                        test,
+                        consequent
                     };
                 },
         
-                createSwitchStatement: function (discriminant, cases) {
+                createSwitchStatement(discriminant, cases) {
                     return {
                         type: Syntax.SwitchStatement,
-                        discriminant: discriminant,
-                        cases: cases
+                        discriminant,
+                        cases
                     };
                 },
         
-                createThisExpression: function () {
+                createThisExpression() {
                     return {
                         type: Syntax.ThisExpression
                     };
                 },
         
-                createThrowStatement: function (argument) {
+                createThrowStatement(argument) {
                     return {
                         type: Syntax.ThrowStatement,
-                        argument: argument
+                        argument
                     };
                 },
         
-                createTryStatement: function (block, guardedHandlers, handlers, finalizer) {
+                createTryStatement(block, guardedHandlers, handlers, finalizer) {
                     return {
                         type: Syntax.TryStatement,
-                        block: block,
-                        guardedHandlers: guardedHandlers,
-                        handlers: handlers,
-                        finalizer: finalizer
+                        block,
+                        guardedHandlers,
+                        handlers,
+                        finalizer
                     };
                 },
         
-                createUnaryExpression: function (operator, argument) {
+                createUnaryExpression(operator, argument) {
                     if (operator === '++' || operator === '--') {
                         return {
                             type: Syntax.UpdateExpression,
-                            operator: operator,
-                            argument: argument,
+                            operator,
+                            argument,
                             prefix: true
                         };
                     }
                     return {
                         type: Syntax.UnaryExpression,
-                        operator: operator,
-                        argument: argument,
+                        operator,
+                        argument,
                         prefix: true
                     };
                 },
         
-                createVariableDeclaration: function (declarations, kind) {
+                createVariableDeclaration(declarations, kind) {
                     return {
                         type: Syntax.VariableDeclaration,
-                        declarations: declarations,
-                        kind: kind
+                        declarations,
+                        kind
                     };
                 },
         
-                createVariableDeclarator: function (id, init) {
+                createVariableDeclarator(id, init) {
                     return {
                         type: Syntax.VariableDeclarator,
-                        id: id,
-                        init: init
+                        id,
+                        init
                     };
                 },
         
-                createWhileStatement: function (test, body) {
+                createWhileStatement(test, body) {
                     return {
                         type: Syntax.WhileStatement,
-                        test: test,
-                        body: body
+                        test,
+                        body
                     };
                 },
         
-                createWithStatement: function (object, body) {
+                createWithStatement(object, body) {
                     return {
                         type: Syntax.WithStatement,
-                        object: object,
-                        body: body
+                        object,
+                        body
                     };
                 }
             };
-        
+
             // Return true if there is a line terminator before the next token.
-        
+
             function peekLineTerminator() {
-                var pos, line, start, found;
-        
+                var pos;
+                var line;
+                var start;
+                var found;
+
                 pos = index;
                 line = lineNumber;
                 start = lineStart;
@@ -4973,23 +5207,24 @@
                 index = pos;
                 lineNumber = line;
                 lineStart = start;
-        
+
                 return found;
             }
-        
+
             // Throw an exception
-        
+
             function throwError(token, messageFormat) {
-                var error,
-                    args = Array.prototype.slice.call(arguments, 2),
-                    msg = messageFormat.replace(
-                        /%(\d)/g,
-                        function (whole, index) {
-                            assert(index < args.length, 'Message reference must be in range');
-                            return args[index];
-                        }
-                    );
-        
+                var error;
+                var args = Array.prototype.slice.call(arguments, 2);
+
+                var msg = messageFormat.replace(
+                    /%(\d)/g,
+                    (whole, index) => {
+                        assert(index < args.length, 'Message reference must be in range');
+                        return args[index];
+                    }
+                );
+
                 if (typeof token.lineNumber === 'number') {
                     error = new Error('Line ' + token.lineNumber + ': ' + msg);
                     error.index = token.range[0];
@@ -5001,14 +5236,14 @@
                     error.lineNumber = lineNumber;
                     error.column = index - lineStart + 1;
                 }
-        
+
                 error.description = msg;
                 throw error;
             }
-        
-            function throwErrorTolerant() {
+
+            function throwErrorTolerant(...args) {
                 try {
-                    throwError.apply(null, arguments);
+                    throwError(...args);
                 } catch (e) {
                     if (extra.errors) {
                         extra.errors.push(e);
@@ -5017,10 +5252,10 @@
                     }
                 }
             }
-        
-        
+
+
             // Throw an exception because of the token.
-        
+
             function throwUnexpected(token) {
                 if (token.type === Token.EOF) {
                     throwError(token, Messages.UnexpectedEOS);
@@ -5051,41 +5286,41 @@
                 // BooleanLiteral, NullLiteral, or Punctuator.
                 throwError(token, Messages.UnexpectedToken, token.value);
             }
-        
+
             // Expect the next token to match the specified punctuator.
             // If not, an exception will be thrown.
-        
+
             function expect(value) {
                 var token = lex();
                 if (token.type !== Token.Punctuator || token.value !== value) {
                     throwUnexpected(token);
                 }
             }
-        
+
             // Expect the next token to match the specified keyword.
             // If not, an exception will be thrown.
-        
+
             function expectKeyword(keyword) {
                 var token = lex();
                 if (token.type !== Token.Keyword || token.value !== keyword) {
                     throwUnexpected(token);
                 }
             }
-        
+
             // Return true if the next token matches the specified punctuator.
-        
+
             function match(value) {
                 return lookahead.type === Token.Punctuator && lookahead.value === value;
             }
-        
+
             // Return true if the next token matches the specified keyword
-        
+
             function matchKeyword(keyword) {
                 return lookahead.type === Token.Keyword && lookahead.value === keyword;
             }
-        
+
             // Return true if the next token is an assignment operator
-        
+
             function matchAssign() {
                 var op;
         
@@ -5106,7 +5341,7 @@
                     op === '^=' ||
                     op === '|=';
             }
-        
+
             function consumeSemicolon() {
                 var line;
         
@@ -5131,15 +5366,15 @@
                     throwUnexpected(lookahead);
                 }
             }
-        
+
             // Return true if provided expression is LeftHandSideExpression
-        
+
             function isLeftHandSide(expr) {
                 return expr.type === Syntax.Identifier || expr.type === Syntax.MemberExpression;
             }
-        
+
             // 11.1.4 Array Initialiser
-        
+
             function parseArrayInitialiser() {
                 var elements = [];
         
@@ -5162,12 +5397,13 @@
         
                 return delegate.createArrayExpression(elements);
             }
-        
+
             // 11.1.5 Object Initialiser
-        
+
             function parsePropertyFunction(param, first) {
-                var previousStrict, body;
-        
+                var previousStrict;
+                var body;
+
                 previousStrict = strict;
                 skipComment();
                 delegate.markStart();
@@ -5178,7 +5414,7 @@
                 strict = previousStrict;
                 return delegate.markEnd(delegate.createFunctionExpression(null, param, [], body));
             }
-        
+
             function parseObjectPropertyKey() {
                 var token;
         
@@ -5198,14 +5434,18 @@
         
                 return delegate.markEnd(delegate.createIdentifier(token.value));
             }
-        
+
             function parseObjectProperty() {
-                var token, key, id, value, param;
-        
+                var token;
+                var key;
+                var id;
+                var value;
+                var param;
+
                 token = lookahead;
                 skipComment();
                 delegate.markStart();
-        
+
                 if (token.type === Token.Identifier) {
         
                     id = parseObjectPropertyKey();
@@ -5247,12 +5487,18 @@
                     return delegate.markEnd(delegate.createProperty('init', key, value));
                 }
             }
-        
+
             function parseObjectInitialiser() {
-                var properties = [], property, name, key, kind, map = {}, toString = String;
-        
+                var properties = [];
+                var property;
+                var name;
+                var key;
+                var kind;
+                var map = {};
+                var toString = String;
+
                 expect('{');
-        
+
                 while (!match('}')) {
                     property = parseObjectProperty();
         
@@ -5289,14 +5535,14 @@
                         expect(',');
                     }
                 }
-        
+
                 expect('}');
-        
+
                 return delegate.createObjectExpression(properties);
             }
-        
+
             // 11.1.6 The Grouping Operator
-        
+
             function parseGroupExpression() {
                 var expr;
         
@@ -5308,20 +5554,22 @@
         
                 return expr;
             }
-        
-        
+
+
             // 11.1 Primary Expressions
-        
+
             function parsePrimaryExpression() {
-                var type, token, expr;
-        
+                var type;
+                var token;
+                var expr;
+
                 if (match('(')) {
                     return parseGroupExpression();
                 }
-        
+
                 type = lookahead.type;
                 delegate.markStart();
-        
+
                 if (type === Token.Identifier) {
                     expr =  delegate.createIdentifier(lex().value);
                 } else if (type === Token.StringLiteral || type === Token.NumericLiteral) {
@@ -5351,16 +5599,16 @@
                 } else if (match('/') || match('/=')) {
                     expr = delegate.createLiteral(scanRegExp());
                 }
-        
+
                 if (expr) {
                     return delegate.markEnd(expr);
                 }
-        
+
                 throwUnexpected(lex());
             }
-        
+
             // 11.2 Left-Hand-Side Expressions
-        
+
             function parseArguments() {
                 var args = [];
         
@@ -5380,7 +5628,7 @@
         
                 return args;
             }
-        
+
             function parseNonComputedProperty() {
                 var token;
         
@@ -5393,13 +5641,13 @@
         
                 return delegate.markEnd(delegate.createIdentifier(token.value));
             }
-        
+
             function parseNonComputedMember() {
                 expect('.');
         
                 return parseNonComputedProperty();
             }
-        
+
             function parseComputedMember() {
                 var expr;
         
@@ -5411,25 +5659,29 @@
         
                 return expr;
             }
-        
+
             function parseNewExpression() {
-                var callee, args;
-        
+                var callee;
+                var args;
+
                 delegate.markStart();
                 expectKeyword('new');
                 callee = parseLeftHandSideExpression();
                 args = match('(') ? parseArguments() : [];
-        
+
                 return delegate.markEnd(delegate.createNewExpression(callee, args));
             }
-        
+
             function parseLeftHandSideExpressionAllowCall() {
-                var marker, expr, args, property;
-        
+                var marker;
+                var expr;
+                var args;
+                var property;
+
                 marker = createLocationMarker();
-        
+
                 expr = matchKeyword('new') ? parseNewExpression() : parsePrimaryExpression();
-        
+
                 while (match('.') || match('[') || match('(')) {
                     if (match('(')) {
                         args = parseArguments();
@@ -5446,17 +5698,19 @@
                         marker.apply(expr);
                     }
                 }
-        
+
                 return expr;
             }
-        
+
             function parseLeftHandSideExpression() {
-                var marker, expr, property;
-        
+                var marker;
+                var expr;
+                var property;
+
                 marker = createLocationMarker();
-        
+
                 expr = matchKeyword('new') ? parseNewExpression() : parsePrimaryExpression();
-        
+
                 while (match('.') || match('[')) {
                     if (match('[')) {
                         property = parseComputedMember();
@@ -5470,18 +5724,19 @@
                         marker.apply(expr);
                     }
                 }
-        
+
                 return expr;
             }
-        
+
             // 11.3 Postfix Expressions
-        
+
             function parsePostfixExpression() {
-                var expr, token;
-        
+                var expr;
+                var token;
+
                 delegate.markStart();
                 expr = parseLeftHandSideExpressionAllowCall();
-        
+
                 if (lookahead.type === Token.Punctuator) {
                     if ((match('++') || match('--')) && !peekLineTerminator()) {
                         // 11.3.1, 11.3.2
@@ -5497,17 +5752,18 @@
                         expr = delegate.createPostfixExpression(token.value, expr);
                     }
                 }
-        
+
                 return delegate.markEndIf(expr);
             }
-        
+
             // 11.4 Unary Operators
-        
+
             function parseUnaryExpression() {
-                var token, expr;
-        
+                var token;
+                var expr;
+
                 delegate.markStart();
-        
+
                 if (lookahead.type !== Token.Punctuator && lookahead.type !== Token.Keyword) {
                     expr = parsePostfixExpression();
                 } else if (match('++') || match('--')) {
@@ -5537,10 +5793,10 @@
                 } else {
                     expr = parsePostfixExpression();
                 }
-        
+
                 return delegate.markEndIf(expr);
             }
-        
+
             function binaryPrecedence(token, allowIn) {
                 var prec = 0;
         
@@ -5611,7 +5867,7 @@
         
                 return prec;
             }
-        
+
             // 11.5 Multiplicative Operators
             // 11.6 Additive Operators
             // 11.7 Bitwise Shift Operators
@@ -5619,16 +5875,26 @@
             // 11.9 Equality Operators
             // 11.10 Binary Bitwise Operators
             // 11.11 Binary Logical Operators
-        
+
             function parseBinaryExpression() {
-                var marker, markers, expr, token, prec, previousAllowIn, stack, right, operator, left, i;
-        
+                var marker;
+                var markers;
+                var expr;
+                var token;
+                var prec;
+                var previousAllowIn;
+                var stack;
+                var right;
+                var operator;
+                var left;
+                var i;
+
                 previousAllowIn = state.allowIn;
                 state.allowIn = true;
-        
+
                 marker = createLocationMarker();
                 left = parseUnaryExpression();
-        
+
                 token = lookahead;
                 prec = binaryPrecedence(token, previousAllowIn);
                 if (prec === 0) {
@@ -5636,12 +5902,12 @@
                 }
                 token.prec = prec;
                 lex();
-        
+
                 markers = [marker, createLocationMarker()];
                 right = parseUnaryExpression();
-        
+
                 stack = [left, token, right];
-        
+
                 while ((prec = binaryPrecedence(lookahead, previousAllowIn)) > 0) {
         
                     // Reduce: make a binary expression from the three topmost entries.
@@ -5668,9 +5934,9 @@
                     expr = parseUnaryExpression();
                     stack.push(expr);
                 }
-        
+
                 state.allowIn = previousAllowIn;
-        
+
                 // Final reduce to clean-up the stack.
                 i = stack.length - 1;
                 expr = stack[i];
@@ -5684,19 +5950,22 @@
                         marker.apply(expr);
                     }
                 }
-        
+
                 return expr;
             }
-        
-        
+
+
             // 11.12 Conditional Operator
-        
+
             function parseConditionalExpression() {
-                var expr, previousAllowIn, consequent, alternate;
-        
+                var expr;
+                var previousAllowIn;
+                var consequent;
+                var alternate;
+
                 delegate.markStart();
                 expr = parseBinaryExpression();
-        
+
                 if (match('?')) {
                     lex();
                     previousAllowIn = state.allowIn;
@@ -5710,19 +5979,22 @@
                 } else {
                     delegate.markEnd({});
                 }
-        
+
                 return expr;
             }
-        
+
             // 11.13 Assignment Operators
-        
+
             function parseAssignmentExpression() {
-                var token, left, right, node;
-        
+                var token;
+                var left;
+                var right;
+                var node;
+
                 token = lookahead;
                 delegate.markStart();
                 node = left = parseConditionalExpression();
-        
+
                 if (matchAssign()) {
                     // LeftHandSideExpression
                     if (!isLeftHandSide(left)) {
@@ -5738,12 +6010,12 @@
                     right = parseAssignmentExpression();
                     node = delegate.createAssignmentExpression(token.value, left, right);
                 }
-        
+
                 return delegate.markEndIf(node);
             }
-        
+
             // 11.14 Comma Operator
-        
+
             function parseExpression() {
                 var expr;
         
@@ -5764,13 +6036,13 @@
         
                 return delegate.markEndIf(expr);
             }
-        
+
             // 12.1 Block
-        
+
             function parseStatementList() {
-                var list = [],
-                    statement;
-        
+                var list = [];
+                var statement;
+
                 while (index < length) {
                     if (match('}')) {
                         break;
@@ -5781,10 +6053,10 @@
                     }
                     list.push(statement);
                 }
-        
+
                 return list;
             }
-        
+
             function parseBlock() {
                 var block;
         
@@ -5798,9 +6070,9 @@
         
                 return delegate.markEnd(delegate.createBlockStatement(block));
             }
-        
+
             // 12.2 Variable Statement
-        
+
             function parseVariableIdentifier() {
                 var token;
         
@@ -5814,19 +6086,20 @@
         
                 return delegate.markEnd(delegate.createIdentifier(token.value));
             }
-        
+
             function parseVariableDeclaration(kind) {
-                var init = null, id;
-        
+                var init = null;
+                var id;
+
                 skipComment();
                 delegate.markStart();
                 id = parseVariableIdentifier();
-        
+
                 // 12.2.1
                 if (strict && isRestrictedWord(id.name)) {
                     throwErrorTolerant({}, Messages.StrictVarName);
                 }
-        
+
                 if (kind === 'const') {
                     expect('=');
                     init = parseAssignmentExpression();
@@ -5834,10 +6107,10 @@
                     lex();
                     init = parseAssignmentExpression();
                 }
-        
+
                 return delegate.markEnd(delegate.createVariableDeclarator(id, init));
             }
-        
+
             function parseVariableDeclarationList(kind) {
                 var list = [];
         
@@ -5851,7 +6124,7 @@
         
                 return list;
             }
-        
+
             function parseVariableStatement() {
                 var declarations;
         
@@ -5863,7 +6136,7 @@
         
                 return delegate.createVariableDeclaration(declarations, 'var');
             }
-        
+
             // kind may be `const` or `let`
             // Both are experimental and not in the specification yet.
             // see http://wiki.ecmascript.org/doku.php?id=harmony:const
@@ -5882,116 +6155,129 @@
         
                 return delegate.markEnd(delegate.createVariableDeclaration(declarations, kind));
             }
-        
+
             // 12.3 Empty Statement
-        
+
             function parseEmptyStatement() {
                 expect(';');
                 return delegate.createEmptyStatement();
             }
-        
+
             // 12.4 Expression Statement
-        
+
             function parseExpressionStatement() {
                 var expr = parseExpression();
                 consumeSemicolon();
                 return delegate.createExpressionStatement(expr);
             }
-        
+
             // 12.5 If statement
-        
+
             function parseIfStatement() {
-                var test, consequent, alternate;
-        
+                var test;
+                var consequent;
+                var alternate;
+
                 expectKeyword('if');
-        
+
                 expect('(');
-        
+
                 test = parseExpression();
-        
+
                 expect(')');
-        
+
                 consequent = parseStatement();
-        
+
                 if (matchKeyword('else')) {
                     lex();
                     alternate = parseStatement();
                 } else {
                     alternate = null;
                 }
-        
+
                 return delegate.createIfStatement(test, consequent, alternate);
             }
-        
+
             // 12.6 Iteration Statements
-        
+
             function parseDoWhileStatement() {
-                var body, test, oldInIteration;
-        
+                var body;
+                var test;
+                var oldInIteration;
+
                 expectKeyword('do');
-        
+
                 oldInIteration = state.inIteration;
                 state.inIteration = true;
-        
+
                 body = parseStatement();
-        
+
                 state.inIteration = oldInIteration;
-        
+
                 expectKeyword('while');
-        
+
                 expect('(');
-        
+
                 test = parseExpression();
-        
+
                 expect(')');
-        
+
                 if (match(';')) {
                     lex();
                 }
-        
+
                 return delegate.createDoWhileStatement(body, test);
             }
-        
+
             function parseWhileStatement() {
-                var test, body, oldInIteration;
-        
+                var test;
+                var body;
+                var oldInIteration;
+
                 expectKeyword('while');
-        
+
                 expect('(');
-        
+
                 test = parseExpression();
-        
+
                 expect(')');
-        
+
                 oldInIteration = state.inIteration;
                 state.inIteration = true;
-        
+
                 body = parseStatement();
-        
+
                 state.inIteration = oldInIteration;
-        
+
                 return delegate.createWhileStatement(test, body);
             }
-        
+
             function parseForVariableDeclaration() {
-                var token, declarations;
-        
+                var token;
+                var declarations;
+
                 delegate.markStart();
                 token = lex();
                 declarations = parseVariableDeclarationList();
-        
+
                 return delegate.markEnd(delegate.createVariableDeclaration(declarations, token.value));
             }
-        
+
             function parseForStatement() {
-                var init, test, update, left, right, body, oldInIteration;
-        
+                var init;
+                var test;
+                var update;
+                var left;
+                var right;
+                var body;
+                var oldInIteration;
+
                 init = test = update = null;
-        
+
                 expectKeyword('for');
-        
+
                 expect('(');
-        
+
                 if (match(';')) {
                     lex();
                 } else {
@@ -6028,7 +6314,7 @@
                         expect(';');
                     }
                 }
-        
+
                 if (typeof left === 'undefined') {
         
                     if (!match(';')) {
@@ -6040,28 +6326,29 @@
                         update = parseExpression();
                     }
                 }
-        
+
                 expect(')');
-        
+
                 oldInIteration = state.inIteration;
                 state.inIteration = true;
-        
+
                 body = parseStatement();
-        
+
                 state.inIteration = oldInIteration;
-        
+
                 return (typeof left === 'undefined') ?
                         delegate.createForStatement(init, test, update, body) :
                         delegate.createForInStatement(left, right, body);
             }
-        
+
             // 12.7 The continue statement
-        
+
             function parseContinueStatement() {
-                var label = null, key;
-        
+                var label = null;
+                var key;
+
                 expectKeyword('continue');
-        
+
                 // Optimize the most common form: 'continue;'.
                 if (source.charCodeAt(index) === 59) {
                     lex();
@@ -6072,7 +6359,7 @@
         
                     return delegate.createContinueStatement(null);
                 }
-        
+
                 if (peekLineTerminator()) {
                     if (!state.inIteration) {
                         throwError({}, Messages.IllegalContinue);
@@ -6080,7 +6367,7 @@
         
                     return delegate.createContinueStatement(null);
                 }
-        
+
                 if (lookahead.type === Token.Identifier) {
                     label = parseVariableIdentifier();
         
@@ -6089,23 +6376,24 @@
                         throwError({}, Messages.UnknownLabel, label.name);
                     }
                 }
-        
+
                 consumeSemicolon();
-        
+
                 if (label === null && !state.inIteration) {
                     throwError({}, Messages.IllegalContinue);
                 }
-        
+
                 return delegate.createContinueStatement(label);
             }
-        
+
             // 12.8 The break statement
-        
+
             function parseBreakStatement() {
-                var label = null, key;
-        
+                var label = null;
+                var key;
+
                 expectKeyword('break');
-        
+
                 // Catch the very common case first: immediately a semicolon (char #59).
                 if (source.charCodeAt(index) === 59) {
                     lex();
@@ -6116,7 +6404,7 @@
         
                     return delegate.createBreakStatement(null);
                 }
-        
+
                 if (peekLineTerminator()) {
                     if (!(state.inIteration || state.inSwitch)) {
                         throwError({}, Messages.IllegalBreak);
@@ -6124,7 +6412,7 @@
         
                     return delegate.createBreakStatement(null);
                 }
-        
+
                 if (lookahead.type === Token.Identifier) {
                     label = parseVariableIdentifier();
         
@@ -6133,18 +6421,18 @@
                         throwError({}, Messages.UnknownLabel, label.name);
                     }
                 }
-        
+
                 consumeSemicolon();
-        
+
                 if (label === null && !(state.inIteration || state.inSwitch)) {
                     throwError({}, Messages.IllegalBreak);
                 }
-        
+
                 return delegate.createBreakStatement(label);
             }
-        
+
             // 12.9 The return statement
-        
+
             function parseReturnStatement() {
                 var argument = null;
         
@@ -6177,36 +6465,37 @@
         
                 return delegate.createReturnStatement(argument);
             }
-        
+
             // 12.10 The with statement
-        
+
             function parseWithStatement() {
-                var object, body;
-        
+                var object;
+                var body;
+
                 if (strict) {
                     throwErrorTolerant({}, Messages.StrictModeWith);
                 }
-        
+
                 expectKeyword('with');
-        
+
                 expect('(');
-        
+
                 object = parseExpression();
-        
+
                 expect(')');
-        
+
                 body = parseStatement();
-        
+
                 return delegate.createWithStatement(object, body);
             }
-        
+
             // 12.10 The swith statement
-        
+
             function parseSwitchCase() {
-                var test,
-                    consequent = [],
-                    statement;
-        
+                var test;
+                var consequent = [];
+                var statement;
+
                 skipComment();
                 delegate.markStart();
                 if (matchKeyword('default')) {
@@ -6217,7 +6506,7 @@
                     test = parseExpression();
                 }
                 expect(':');
-        
+
                 while (index < length) {
                     if (match('}') || matchKeyword('default') || matchKeyword('case')) {
                         break;
@@ -6225,34 +6514,38 @@
                     statement = parseStatement();
                     consequent.push(statement);
                 }
-        
+
                 return delegate.markEnd(delegate.createSwitchCase(test, consequent));
             }
-        
+
             function parseSwitchStatement() {
-                var discriminant, cases, clause, oldInSwitch, defaultFound;
-        
+                var discriminant;
+                var cases;
+                var clause;
+                var oldInSwitch;
+                var defaultFound;
+
                 expectKeyword('switch');
-        
+
                 expect('(');
-        
+
                 discriminant = parseExpression();
-        
+
                 expect(')');
-        
+
                 expect('{');
-        
+
                 if (match('}')) {
                     lex();
                     return delegate.createSwitchStatement(discriminant);
                 }
-        
+
                 cases = [];
-        
+
                 oldInSwitch = state.inSwitch;
                 state.inSwitch = true;
                 defaultFound = false;
-        
+
                 while (index < length) {
                     if (match('}')) {
                         break;
@@ -6266,16 +6559,16 @@
                     }
                     cases.push(clause);
                 }
-        
+
                 state.inSwitch = oldInSwitch;
-        
+
                 expect('}');
-        
+
                 return delegate.createSwitchStatement(discriminant, cases);
             }
-        
+
             // 12.13 The throw statement
-        
+
             function parseThrowStatement() {
                 var argument;
         
@@ -6291,57 +6584,60 @@
         
                 return delegate.createThrowStatement(argument);
             }
-        
+
             // 12.14 The try statement
-        
+
             function parseCatchClause() {
-                var param, body;
-        
+                var param;
+                var body;
+
                 skipComment();
                 delegate.markStart();
                 expectKeyword('catch');
-        
+
                 expect('(');
                 if (match(')')) {
                     throwUnexpected(lookahead);
                 }
-        
+
                 param = parseVariableIdentifier();
                 // 12.14.1
                 if (strict && isRestrictedWord(param.name)) {
                     throwErrorTolerant({}, Messages.StrictCatchVariable);
                 }
-        
+
                 expect(')');
                 body = parseBlock();
                 return delegate.markEnd(delegate.createCatchClause(param, body));
             }
-        
+
             function parseTryStatement() {
-                var block, handlers = [], finalizer = null;
-        
+                var block;
+                var handlers = [];
+                var finalizer = null;
+
                 expectKeyword('try');
-        
+
                 block = parseBlock();
-        
+
                 if (matchKeyword('catch')) {
                     handlers.push(parseCatchClause());
                 }
-        
+
                 if (matchKeyword('finally')) {
                     lex();
                     finalizer = parseBlock();
                 }
-        
+
                 if (handlers.length === 0 && !finalizer) {
                     throwError({}, Messages.NoCatchOrFinally);
                 }
-        
+
                 return delegate.createTryStatement(block, [], handlers, finalizer);
             }
-        
+
             // 12.15 The debugger statement
-        
+
             function parseDebuggerStatement() {
                 expectKeyword('debugger');
         
@@ -6349,22 +6645,22 @@
         
                 return delegate.createDebuggerStatement();
             }
-        
+
             // 12 Statements
-        
+
             function parseStatement() {
-                var type = lookahead.type,
-                    expr,
-                    labeledBody,
-                    key;
-        
+                var type = lookahead.type;
+                var expr;
+                var labeledBody;
+                var key;
+
                 if (type === Token.EOF) {
                     throwUnexpected(lookahead);
                 }
-        
+
                 skipComment();
                 delegate.markStart();
-        
+
                 if (type === Token.Punctuator) {
                     switch (lookahead.value) {
                     case ';':
@@ -6377,7 +6673,7 @@
                         break;
                     }
                 }
-        
+
                 if (type === Token.Keyword) {
                     switch (lookahead.value) {
                     case 'break':
@@ -6412,9 +6708,9 @@
                         break;
                     }
                 }
-        
+
                 expr = parseExpression();
-        
+
                 // 12.12 Labelled Statements
                 if ((expr.type === Syntax.Identifier) && match(':')) {
                     lex();
@@ -6429,22 +6725,29 @@
                     delete state.labelSet[key];
                     return delegate.markEnd(delegate.createLabeledStatement(expr, labeledBody));
                 }
-        
+
                 consumeSemicolon();
-        
+
                 return delegate.markEnd(delegate.createExpressionStatement(expr));
             }
-        
+
             // 13 Function Definition
-        
+
             function parseFunctionSourceElements() {
-                var sourceElement, sourceElements = [], token, directive, firstRestricted,
-                    oldLabelSet, oldInIteration, oldInSwitch, oldInFunctionBody;
-        
+                var sourceElement;
+                var sourceElements = [];
+                var token;
+                var directive;
+                var firstRestricted;
+                var oldLabelSet;
+                var oldInIteration;
+                var oldInSwitch;
+                var oldInFunctionBody;
+
                 skipComment();
                 delegate.markStart();
                 expect('{');
-        
+
                 while (index < length) {
                     if (lookahead.type !== Token.StringLiteral) {
                         break;
@@ -6469,17 +6772,17 @@
                         }
                     }
                 }
-        
+
                 oldLabelSet = state.labelSet;
                 oldInIteration = state.inIteration;
                 oldInSwitch = state.inSwitch;
                 oldInFunctionBody = state.inFunctionBody;
-        
+
                 state.labelSet = {};
                 state.inIteration = false;
                 state.inSwitch = false;
                 state.inFunctionBody = true;
-        
+
                 while (index < length) {
                     if (match('}')) {
                         break;
@@ -6490,21 +6793,27 @@
                     }
                     sourceElements.push(sourceElement);
                 }
-        
+
                 expect('}');
-        
+
                 state.labelSet = oldLabelSet;
                 state.inIteration = oldInIteration;
                 state.inSwitch = oldInSwitch;
                 state.inFunctionBody = oldInFunctionBody;
-        
+
                 return delegate.markEnd(delegate.createBlockStatement(sourceElements));
             }
-        
+
             function parseParams(firstRestricted) {
-                var param, params = [], token, stricted, paramSet, key, message;
+                var param;
+                var params = [];
+                var token;
+                var stricted;
+                var paramSet;
+                var key;
+                var message;
                 expect('(');
-        
+
                 if (!match(')')) {
                     paramSet = {};
                     while (index < length) {
@@ -6540,23 +6849,31 @@
                         expect(',');
                     }
                 }
-        
+
                 expect(')');
-        
+
                 return {
-                    params: params,
-                    stricted: stricted,
-                    firstRestricted: firstRestricted,
-                    message: message
+                    params,
+                    stricted,
+                    firstRestricted,
+                    message
                 };
             }
-        
+
             function parseFunctionDeclaration() {
-                var id, params = [], body, token, stricted, tmp, firstRestricted, message, previousStrict;
-        
+                var id;
+                var params = [];
+                var body;
+                var token;
+                var stricted;
+                var tmp;
+                var firstRestricted;
+                var message;
+                var previousStrict;
+
                 skipComment();
                 delegate.markStart();
-        
+
                 expectKeyword('function');
                 token = lookahead;
                 id = parseVariableIdentifier();
@@ -6573,7 +6890,7 @@
                         message = Messages.StrictReservedWord;
                     }
                 }
-        
+
                 tmp = parseParams(firstRestricted);
                 params = tmp.params;
                 stricted = tmp.stricted;
@@ -6581,7 +6898,7 @@
                 if (tmp.message) {
                     message = tmp.message;
                 }
-        
+
                 previousStrict = strict;
                 body = parseFunctionSourceElements();
                 if (strict && firstRestricted) {
@@ -6591,16 +6908,24 @@
                     throwErrorTolerant(stricted, message);
                 }
                 strict = previousStrict;
-        
+
                 return delegate.markEnd(delegate.createFunctionDeclaration(id, params, [], body));
             }
-        
+
             function parseFunctionExpression() {
-                var token, id = null, stricted, firstRestricted, message, tmp, params = [], body, previousStrict;
-        
+                var token;
+                var id = null;
+                var stricted;
+                var firstRestricted;
+                var message;
+                var tmp;
+                var params = [];
+                var body;
+                var previousStrict;
+
                 delegate.markStart();
                 expectKeyword('function');
-        
+
                 if (!match('(')) {
                     token = lookahead;
                     id = parseVariableIdentifier();
@@ -6618,7 +6943,7 @@
                         }
                     }
                 }
-        
+
                 tmp = parseParams(firstRestricted);
                 params = tmp.params;
                 stricted = tmp.stricted;
@@ -6626,7 +6951,7 @@
                 if (tmp.message) {
                     message = tmp.message;
                 }
-        
+
                 previousStrict = strict;
                 body = parseFunctionSourceElements();
                 if (strict && firstRestricted) {
@@ -6636,12 +6961,12 @@
                     throwErrorTolerant(stricted, message);
                 }
                 strict = previousStrict;
-        
+
                 return delegate.markEnd(delegate.createFunctionExpression(id, params, [], body));
             }
-        
+
             // 14 Program
-        
+
             function parseSourceElement() {
                 if (lookahead.type === Token.Keyword) {
                     switch (lookahead.value) {
@@ -6659,10 +6984,14 @@
                     return parseStatement();
                 }
             }
-        
+
             function parseSourceElements() {
-                var sourceElement, sourceElements = [], token, directive, firstRestricted;
-        
+                var sourceElement;
+                var sourceElements = [];
+                var token;
+                var directive;
+                var firstRestricted;
+
                 while (index < length) {
                     token = lookahead;
                     if (token.type !== Token.StringLiteral) {
@@ -6687,7 +7016,7 @@
                         }
                     }
                 }
-        
+
                 while (index < length) {
                     sourceElement = parseSourceElement();
                     if (typeof sourceElement === 'undefined') {
@@ -6697,7 +7026,7 @@
                 }
                 return sourceElements;
             }
-        
+
             function parseProgram() {
                 var body;
         
@@ -6708,10 +7037,14 @@
                 body = parseSourceElements();
                 return delegate.markEnd(delegate.createProgram(body));
             }
-        
+
             function collectToken() {
-                var start, loc, token, range, value;
-        
+                var start;
+                var loc;
+                var token;
+                var range;
+                var value;
+
                 skipComment();
                 start = index;
                 loc = {
@@ -6720,32 +7053,35 @@
                         column: index - lineStart
                     }
                 };
-        
+
                 token = extra.advance();
                 loc.end = {
                     line: lineNumber,
                     column: index - lineStart
                 };
-        
+
                 if (token.type !== Token.EOF) {
                     range = [token.range[0], token.range[1]];
                     value = source.slice(token.range[0], token.range[1]);
                     extra.tokens.push({
                         type: TokenName[token.type],
-                        value: value,
-                        range: range,
-                        loc: loc
+                        value,
+                        range,
+                        loc
                     });
                 }
-        
+
                 return token;
             }
-        
+
             function collectRegex() {
-                var pos, loc, regex, token;
-        
+                var pos;
+                var loc;
+                var regex;
+                var token;
+
                 skipComment();
-        
+
                 pos = index;
                 loc = {
                     start: {
@@ -6753,13 +7089,13 @@
                         column: index - lineStart
                     }
                 };
-        
+
                 regex = extra.scanRegExp();
                 loc.end = {
                     line: lineNumber,
                     column: index - lineStart
                 };
-        
+
                 if (!extra.tokenize) {
                     // Pop the previous token, which is likely '/' or '/='
                     if (extra.tokens.length > 0) {
@@ -6775,16 +7111,19 @@
                         type: 'RegularExpression',
                         value: regex.literal,
                         range: [pos, index],
-                        loc: loc
+                        loc
                     });
                 }
-        
+
                 return regex;
             }
-        
+
             function filterTokenLocation() {
-                var i, entry, token, tokens = [];
-        
+                var i;
+                var entry;
+                var token;
+                var tokens = [];
+
                 for (i = 0; i < extra.tokens.length; ++i) {
                     entry = extra.tokens[i];
                     token = {
@@ -6799,10 +7138,10 @@
                     }
                     tokens.push(token);
                 }
-        
+
                 extra.tokens = tokens;
             }
-        
+
             function createLocationMarker() {
         
                 if (!extra.loc && !extra.range) {
@@ -6814,13 +7153,13 @@
                 return {
                     marker: [index, lineNumber, index - lineStart, 0, 0, 0],
         
-                    end: function () {
+                    end() {
                         this.marker[3] = index;
                         this.marker[4] = lineNumber;
                         this.marker[5] = index - lineStart;
                     },
         
-                    apply: function (node) {
+                    apply(node) {
                         if (extra.range) {
                             node.range = [this.marker[0], this.marker[3]];
                         }
@@ -6840,7 +7179,7 @@
                     }
                 };
             }
-        
+
             function patch() {
                 if (typeof extra.tokens !== 'undefined') {
                     extra.advance = advance;
@@ -6850,24 +7189,24 @@
                     scanRegExp = collectRegex;
                 }
             }
-        
+
             function unpatch() {
                 if (typeof extra.scanRegExp === 'function') {
                     advance = extra.advance;
                     scanRegExp = extra.scanRegExp;
                 }
             }
-        
+
             function tokenize(code, options) {
-                var toString,
-                    token,
-                    tokens;
-        
+                var toString;
+                var token;
+                var tokens;
+
                 toString = String;
                 if (typeof code !== 'string' && !(code instanceof String)) {
                     code = toString(code);
                 }
-        
+
                 delegate = SyntaxTreeDelegate;
                 source = code;
                 index = 0;
@@ -6883,12 +7222,12 @@
                     inSwitch: false,
                     lastCommentStart: -1,
                 };
-        
+
                 extra = {};
-        
+
                 // Options matching.
                 options = options || {};
-        
+
                 // Of course we collect tokens here.
                 options.tokens = true;
                 extra.tokens = [];
@@ -6896,17 +7235,17 @@
                 // The following two fields are necessary to compute the Regex tokens.
                 extra.openParenToken = -1;
                 extra.openCurlyToken = -1;
-        
+
                 extra.range = (typeof options.range === 'boolean') && options.range;
                 extra.loc = (typeof options.loc === 'boolean') && options.loc;
-        
+
                 if (typeof options.comment === 'boolean' && options.comment) {
                     extra.comments = [];
                 }
                 if (typeof options.tolerant === 'boolean' && options.tolerant) {
                     extra.errors = [];
                 }
-        
+
                 if (length > 0) {
                     if (typeof source[0] === 'undefined') {
                         // Try first to convert to a string. This is good as fast path
@@ -6917,9 +7256,9 @@
                         }
                     }
                 }
-        
+
                 patch();
-        
+
                 try {
                     peek();
                     if (lookahead.type === Token.EOF) {
@@ -6959,15 +7298,16 @@
                 }
                 return tokens;
             }
-        
+
             function parse(code, options) {
-                var program, toString;
-        
+                var program;
+                var toString;
+
                 toString = String;
                 if (typeof code !== 'string' && !(code instanceof String)) {
                     code = toString(code);
                 }
-        
+
                 delegate = SyntaxTreeDelegate;
                 source = code;
                 index = 0;
@@ -6984,7 +7324,7 @@
                     lastCommentStart: -1,
                     markerStack: []
                 };
-        
+
                 extra = {};
                 if (typeof options !== 'undefined') {
                     extra.range = (typeof options.range === 'boolean') && options.range;
@@ -7004,7 +7344,7 @@
                         extra.errors = [];
                     }
                 }
-        
+
                 if (length > 0) {
                     if (typeof source[0] === 'undefined') {
                         // Try first to convert to a string. This is good as fast path
@@ -7015,7 +7355,7 @@
                         }
                     }
                 }
-        
+
                 patch();
                 try {
                     program = parseProgram();
@@ -7035,41 +7375,41 @@
                     unpatch();
                     extra = {};
                 }
-        
+
                 return program;
             }
-        
+
             // Sync with package.json and component.json.
             exports.version = '1.1.0-dev';
-        
+
             exports.tokenize = tokenize;
-        
+
             exports.parse = parse;
-        
+
             // Deep copy.
-            exports.Syntax = (function () {
-                var name, types = {};
-        
+            exports.Syntax = ((() => {
+                var name;
+                var types = {};
+
                 if (typeof Object.create === 'function') {
                     types = Object.create(null);
                 }
-        
+
                 for (name in Syntax) {
                     if (Syntax.hasOwnProperty(name)) {
                         types[name] = Syntax[name];
                     }
                 }
-        
+
                 if (typeof Object.freeze === 'function') {
                     Object.freeze(types);
                 }
-        
+
                 return types;
-            }());
-        
+            })());
         }));
         /* vim: set sw=4 ts=4 et tw=80 : */
     };
 
     require('NodeExports');
-})(this || exports);
+}))(this || exports);

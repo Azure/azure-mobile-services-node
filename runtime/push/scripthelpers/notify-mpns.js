@@ -4,11 +4,12 @@
 // This module supports sending push notifications to Windows Phone 8 clients using 
 // Microsoft Push Notification Services
 
-var core = require('../../core'),
-	mpns = require('mpns'),
-    notify = require('./notify');
+var core = require('../../core');
 
-exports.createMpnsContext = function () {
+var mpns = require('mpns');
+var notify = require('./notify');
+
+exports.createMpnsContext = () => {
 
 	// - channel URL is passed to callbacks as part of the result or error object
     function visitResult(item, args) {

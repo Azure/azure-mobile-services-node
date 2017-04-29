@@ -4,9 +4,10 @@
 //
 // This class captures the metadata about a table in user database.
 
-var _ = require('underscore'),
-    _str = require('underscore.string');
-    core = require('../core');
+var _ = require('underscore');
+
+var _str = require('underscore.string');
+core = require('../core');
 
 _.mixin(_str.exports());
 
@@ -18,7 +19,7 @@ function TableMetadata () {
     this.binaryColumns = [];
 
     Object.defineProperty(this, 'hasStringId', {
-        get: function () { return this.idType === 'string'; }
+        get() { return this.idType === 'string'; }
     });
 }
 
@@ -59,7 +60,7 @@ TableMetadata.prototype._addSystemColumn = function (column) {
     }
 };
 
-TableMetadata.prototype._getTableIdType = function (type) {
+TableMetadata.prototype._getTableIdType = type => {
     if (type.indexOf('int') >= 0) {
         return 'number';
     }
@@ -69,12 +70,12 @@ TableMetadata.prototype._getTableIdType = function (type) {
     return 'unknown';
 };
 
-TableMetadata.fromColumns = function (columns) {
+TableMetadata.fromColumns = columns => {
     // the default table metadata
     var metadata = new TableMetadata();
 
     // iterate over the columns 
-    _.each(columns, function (column) {
+    _.each(columns, column => {
         metadata._addColumn(column);
     });
 

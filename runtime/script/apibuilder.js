@@ -4,15 +4,16 @@
 //
 // This module is responsible for loading and exposing custom apis on the app
 
-var StatusCodes = require('../statuscodes').StatusCodes,
-    path = require('path'),
-    core = require('../core'),
-    Metadata = require('./metadata'),
-    scriptErrors = require('./scripterror'),
-    ScriptLoader = require('./scriptloader'),
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    allowHandler = require('../request/middleware/allowhandler');
+var StatusCodes = require('../statuscodes').StatusCodes;
+
+var path = require('path');
+var core = require('../core');
+var Metadata = require('./metadata');
+var scriptErrors = require('./scripterror');
+var ScriptLoader = require('./scriptloader');
+var _ = require('underscore');
+var _str = require('underscore.string');
+var allowHandler = require('../request/middleware/allowhandler');
 
 _.mixin(_str.exports());
 
@@ -65,8 +66,9 @@ ApiBuilder.prototype._handleLoadError = function (err, scriptInfo) {
 // callback for file load events from script loader
 ApiBuilder.prototype._handleFileLoad = function (supportedMethods, scriptInfo) {
     // get or create the api entry for this file
-    var api = this.apis[scriptInfo.name] || createApi(scriptInfo),
-        isScript = isScriptFile(scriptInfo.scriptFileName);
+    var api = this.apis[scriptInfo.name] || createApi(scriptInfo);
+
+    var isScript = isScriptFile(scriptInfo.scriptFileName);
 
     if (isScript) {
         this._loadApi(supportedMethods, api);
@@ -82,15 +84,15 @@ ApiBuilder.prototype._handleFileLoad = function (supportedMethods, scriptInfo) {
 };
 
 ApiBuilder.prototype._loadApi = function (supportedMethods, api) {
-    var scriptPath = api.scriptPath,
-        baseRoute = '/api/' + api.name,
-        scriptSource = '/api/' + api.scriptFileName,
-        self = this;
+    var scriptPath = api.scriptPath;
+    var baseRoute = '/api/' + api.name;
+    var scriptSource = '/api/' + api.scriptFileName;
+    var self = this;
 
     api.baseRoute = baseRoute;
     api.reset();  // clear any existing routes
     this.apis[api.name] = api;
-    
+
     // clone the base middleware to and add additional to define
     // the common set of middleware for this api
     var middleware = self.middleware.slice(0) || [];
@@ -106,10 +108,10 @@ ApiBuilder.prototype._loadApi = function (supportedMethods, api) {
 
         api.addRoute(route, method);
 
-        handler = _.wrap(handler, function (originalHandler, req, res) {
-            var logger = req._context.logger,
-                metrics = req._context.metrics,
-                responseCallback = req._context.responseCallback;
+        handler = _.wrap(handler, (originalHandler, req, res) => {
+            var logger = req._context.logger;
+            var metrics = req._context.metrics;
+            var responseCallback = req._context.responseCallback;
 
             logger.trace(logSource, 'Invoking user handler');
             metrics.event(_.sprintf('api.custom.%s', method));
@@ -136,8 +138,8 @@ ApiBuilder.prototype._loadApi = function (supportedMethods, api) {
 
     // define an api wrapper to intercept route registration calls, etc.
     var apiWrapper = {};
-    _.each(supportedMethods, function (method) {
-        apiWrapper[method] = function (route, handler) {
+    _.each(supportedMethods, method => {
+        apiWrapper[method] = (route, handler) => {
             if (!_.startsWith(route, '/')) {
                 route = '/' + route;
             }
@@ -160,7 +162,7 @@ ApiBuilder.prototype._loadApi = function (supportedMethods, api) {
             // since we don't know what routes the register function would have registered 
             // we configure the api to always error on execution on a public 'all' route
             api.error = "'register' method of the api failed.";            
-            addRoute('all', baseRoute, middleware, function (req, res) { });
+            addRoute('all', baseRoute, middleware, (req, res) => { });
         }        
     }
 
@@ -168,7 +170,7 @@ ApiBuilder.prototype._loadApi = function (supportedMethods, api) {
         // next load any implicit routes
         // "prescriptive" form of a custom api, with exported functions
         // for each http verb
-        _.each(supportedMethods, function (method) {
+        _.each(supportedMethods, method => {
             var handler = apiModule[method];
             if (handler) {
                 addRoute(method, baseRoute, middleware, handler);
@@ -178,7 +180,7 @@ ApiBuilder.prototype._loadApi = function (supportedMethods, api) {
 
     // finally, add an allow handler that will match on all http
     // methods, to send back proper 405 Allow responses
-    _.each(api.routes, function (route, path) {
+    _.each(api.routes, (route, path) => {
         self.app.all(path, allowHandler(route.methods));
     });
 };
@@ -191,9 +193,9 @@ function apiLoadErrorHandler(req, res) {
 // middleware used to set the required permission on the request,
 // based on the permission configured for the api route
 function requirePermission(api, req, res, next) {
-    var requiredPermission = 'admin',
-        logger = req._context.logger,
-        parsedRequest = req._context.parsedRequest;
+    var requiredPermission = 'admin';
+    var logger = req._context.logger;
+    var parsedRequest = req._context.parsedRequest;
 
     // if we faild to register the apis or load the metadata file, we don't know what permissions it would have
     // since we're going to return an error from the api, it is safe to make it public
@@ -227,19 +229,19 @@ function requirePermission(api, req, res, next) {
 // middleware used to set up required state on the request before
 // calling into user code
 function prepareRequest(api, scriptManager, req, res, next) {
-    var logger = req._context.logger,
-        responseCallback = req._context.responseCallback,
-        source = '/api/' + api.scriptFileName;
+    var logger = req._context.logger;
+    var responseCallback = req._context.responseCallback;
+    var source = '/api/' + api.scriptFileName;
 
     // set the executing script on request context
     req._context.script = source;
 
     // add service to the request
-    req.service = scriptManager.buildScriptService(source, logger, { responseCallback: responseCallback });
+    req.service = scriptManager.buildScriptService(source, logger, { responseCallback });
 
     // to keep the script apis consistent, we define a 'respond'
     // which delegates to send
-    req.respond = function (statusCode, body) {
+    req.respond = (statusCode, body) => {
         res.send(statusCode, body);
     };
 

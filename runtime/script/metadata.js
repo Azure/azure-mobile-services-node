@@ -4,16 +4,17 @@
 //
 // Encapsulates script metadata
 
-var core = require('../core'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var core = require('../core');
+
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
 exports = module.exports = Metadata;
 
-var supportedHttpMethods = ['get', 'put', 'post', 'patch', 'delete'],
-    tableOperations = ['read', 'insert', 'update', 'delete'];
+var supportedHttpMethods = ['get', 'put', 'post', 'patch', 'delete'];
+var tableOperations = ['read', 'insert', 'update', 'delete'];
 
 function Metadata(metadata, filename) {
     this.metadata = metadata;
@@ -44,15 +45,13 @@ Metadata.prototype.getRouteMetadata = function (route, method) {
 };
 
 Metadata.prototype._matchRoute = function (route) {
-    var normalizedRoute = _.trim(route, '/'),
-        routeMetadata = null;
+    var normalizedRoute = _.trim(route, '/');
+    var routeMetadata = null;
 
     // Search for a route match by normalizing both values 
     // by removing any leading/trailing slashes. E.g., we want
     // match /a/b with a/b or a/b/, etc.
-    var matchedRoute = _.chain(this.metadata.routes).keys().find(function (routeKey) {
-        return normalizedRoute == _.trim(routeKey, '/');
-    }).value();
+    var matchedRoute = _.chain(this.metadata.routes).keys().find(routeKey => normalizedRoute == _.trim(routeKey, '/')).value();
 
     if (matchedRoute) {
         routeMetadata = this.metadata.routes[matchedRoute];
@@ -66,15 +65,15 @@ Metadata.prototype._matchRoute = function (route) {
 };
 
 function validateMetadata(metadata, fileName) {
-    var validMetadataProperties = ['permission'],
-        validPermissions = ['application', 'user', 'authenticated', 'admin', 'public'];
+    var validMetadataProperties = ['permission'];
+    var validPermissions = ['application', 'user', 'authenticated', 'admin', 'public'];
 
     function throwMetadataError(reason) {
         throw new Error(_.sprintf("Invalid metadata file '%s': %s", fileName, reason));
     }
 
     function validateRouteMetadata(route, routeMetadata) {
-        _.each(routeMetadata, function (value, key) {
+        _.each(routeMetadata, (value, key) => {
             if (validMetadataProperties.indexOf(key) < 0) {
                 throwMetadataError(_.sprintf("Invalid route metadata for route '%s'. '%s' is not a valid metadata property.", route, key));
             }
@@ -94,7 +93,7 @@ function validateMetadata(metadata, fileName) {
         throwMetadataError("'routes' must be an object, mapping routes to route metadata.");
     }
 
-    _.each(routes, function (routeMetadata, route) {
+    _.each(routes, (routeMetadata, route) => {
         // validate the route 
         if (!route) {
             throwMetadataError(_.sprintf("Invalid route path '%s'", route));
@@ -104,7 +103,7 @@ function validateMetadata(metadata, fileName) {
         }
 
         if (isMethodMap(routeMetadata)) {
-            _.each(routeMetadata, function (routeMetadataMap, methodOrOp) {
+            _.each(routeMetadata, (routeMetadataMap, methodOrOp) => {
                 if (!isHttpMethodOrTableOperation(methodOrOp)) {
                     throwMetadataError(_.sprintf("Invalid route metadata for route '%s'. '%s' is not a supported http method or table operation.", route, methodOrOp));
                 }

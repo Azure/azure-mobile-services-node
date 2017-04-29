@@ -7,10 +7,13 @@
 // { secrets: { ... }, claims: {... } }
 // where secrets and claims are key value pairs of data about user
 
-var Encryptor = require('../encryptor'),
-    VERSION = 1, // version of encryption algorithm
-    KEYID = 0; // in future when we support key rollover, we will increment this every time key changes
-               // we will keep at least two master keys (with their key ids) at all times i.e. current and previous
+var Encryptor = require('../encryptor'); // in future when we support key rollover, we will increment this every time key changes
+// we will keep at least two master keys (with their key ids) at all times i.e. current and previous
+
+var // version of encryption algorithm
+VERSION = 1;
+
+var KEYID = 0;
 
 function UserProperties(masterKey) {
     this.encryptionKey = masterKey + 'USR';

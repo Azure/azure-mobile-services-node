@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-(function (global) {
+((global => {
 
     var core = require('../core');
 
@@ -39,7 +39,7 @@
 
     Expression = core.defineClass(
     null, {
-        accept: function (visitor) {
+        accept(visitor) {
             return visitor.visit(this);
         }
     },
@@ -51,7 +51,7 @@
         this.value = value;
         this.expressionType = ExpressionType.Constant;
     }, {
-        accept: function (visitor) {
+        accept(visitor) {
             return visitor.visitConstant(this);
         }
     },
@@ -64,7 +64,7 @@
         this.right = right;
         this.expressionType = expressionType;
     }, {
-        accept: function (visitor) {
+        accept(visitor) {
             return visitor.visitBinary(this);
         }
     },
@@ -76,7 +76,7 @@
         this.operand = operand;
         this.expressionType = expressionType;
     }, {
-        accept: function (visitor) {
+        accept(visitor) {
             return visitor.visitUnary(this);
         }
     },
@@ -90,7 +90,7 @@
         this.member = member;
         this.expressionType = ExpressionType.MemberAccess;
     }, {
-        accept: function (visitor) {
+        accept(visitor) {
             return visitor.visitMember(this);
         }
     },
@@ -104,7 +104,7 @@
         this.args = args;
         this.expressionType = ExpressionType.Call;
     }, {
-        accept: function (visitor) {
+        accept(visitor) {
             return visitor.visitFunction(this);
         }
     },
@@ -114,7 +114,7 @@
     function () {
         this.ExpressionType = ExpressionType.Parameter;
     }, {
-        accept: function (visitor) {
+        accept(visitor) {
             return visitor.visitParameter(this);
         }
     },
@@ -127,10 +127,10 @@
         this.operand = operand;
         this.expressionType = ExpressionType.Convert;
     }, {
-        accept: function (visitor) {
+        accept(visitor) {
             return visitor.visitUnary(this);
         }
     },
     null);
 
-})(typeof exports === "undefined" ? this : exports);
+}))(typeof exports === "undefined" ? this : exports);

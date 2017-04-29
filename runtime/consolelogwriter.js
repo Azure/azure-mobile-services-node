@@ -5,9 +5,10 @@
 // This module is responsible for directing logging to the console. 
 // Implements same public functions as logwriter.js.
 
-var core = require('./core'),
-    util = require('util'),
-    events = require('events');
+var core = require('./core');
+
+var util = require('util');
+var events = require('events');
 
 exports = module.exports = ConsoleLogWriter;
 

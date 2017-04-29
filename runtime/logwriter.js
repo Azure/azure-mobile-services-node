@@ -6,13 +6,14 @@
 // It maintains a cache of log entries and flushes them in batches to the logging service
 // at regular intervals.
 
-var core = require('./core'),
-    http = require('http'),
-    url = require('url'),
-    util = require('util'),
-    events = require('events'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var core = require('./core');
+
+var http = require('http');
+var url = require('url');
+var util = require('util');
+var events = require('events');
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
@@ -83,7 +84,7 @@ LogWriter.prototype.queueFlush = function () {
         // on the logging service by batching multiple log entries
         // into a single request.
         var self = this;
-        this.timer = setTimeout(function () {
+        this.timer = setTimeout(() => {
             self.flush();
         }, this.flushTimeout);
     }
@@ -129,8 +130,9 @@ LogWriter.prototype.clear = function () {
 LogWriter.prototype._enforceSystemLogBufferLimit = function () {
     if (this.systemLogs.length > this.maxLogEntryFlushCount) {
         // fist, grab the first half of the logs
-        var count = this.systemLogs.length,
-            logs = this.systemLogs.slice(0, this.maxLogEntryFlushCount / 2);
+        var count = this.systemLogs.length;
+
+        var logs = this.systemLogs.slice(0, this.maxLogEntryFlushCount / 2);
 
         // add a truncation entry to indicate logs were truncated
         var truncationEntry = logs.slice(-1)[0];
@@ -159,13 +161,13 @@ LogWriter.prototype._write = function (path, logEntries) {
         return;
     }
 
-    var self = this,
-        retryCount = 0;
+    var self = this;
+    var retryCount = 0;
 
     // POST the log entries to the remote log service
     try {        
         // define a function to actually build and issue the POST request
-        var postLogs = function (logEntries) {
+        var postLogs = logEntries => {
             var logData = core.stringify(logEntries);
             var logSize = Buffer.byteLength(logData, 'utf8');
 
@@ -173,7 +175,7 @@ LogWriter.prototype._write = function (path, logEntries) {
             // multiple batches, recursively if necessary.            
             if (logSize > self.maxRequestSize) {
                 var batches = self._splitEntries(logEntries);
-                batches.forEach(function (batch) {
+                batches.forEach(batch => {
                     postLogs(batch);
                 });
                 return;
@@ -182,7 +184,7 @@ LogWriter.prototype._write = function (path, logEntries) {
             var options = {
                 host: self.logServiceURL.hostname,
                 port: self.logServiceURL.port,
-                path: path,
+                path,
                 method: 'POST',
                 headers: {
                     'Host': self.logServiceURL.hostname,
@@ -195,7 +197,7 @@ LogWriter.prototype._write = function (path, logEntries) {
             function retryRequest(e) {
                 // if the request failed, retry up to the maximum retry limit
                 if (++retryCount <= self.requestRetryMaxAttempts) {
-                    setTimeout(function () {
+                    setTimeout(() => {
                         postLogs(logEntries);
                     }, self.requestRetryInterval);
                 } else {
@@ -205,7 +207,7 @@ LogWriter.prototype._write = function (path, logEntries) {
                 }
             }
 
-            var req = self._createHttpRequest(options, function (res) {                
+            var req = self._createHttpRequest(options, res => {                
                 if (res.statusCode >= 400) {
                     // Node's HTTP stack won't emit the error event for all error responses, so we need to handle errors here too.
                     var err = new Error("Error encountered communicating with the logging service, status code: " + res.statusCode);                    
@@ -240,13 +242,11 @@ LogWriter.prototype._write = function (path, logEntries) {
 };
 
 // factored as a method to facilitate testability/mocking
-LogWriter.prototype._createHttpRequest = function (options, callback) {
-    return http.request(options, function (res) {
-        callback(res);
-    });
-};
+LogWriter.prototype._createHttpRequest = (options, callback) => http.request(options, res => {
+    callback(res);
+});
 
-LogWriter.prototype._splitEntries = function (entries) {
+LogWriter.prototype._splitEntries = entries => {
     var batch1 = entries.slice(0, entries.length / 2);
     var batch2 = entries.slice(entries.length / 2);
     return [batch1, batch2];

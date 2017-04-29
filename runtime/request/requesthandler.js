@@ -5,44 +5,45 @@
 // This module is responsible for processing HTTP requests end to end. Delegates to specific
 // handler modules to process different request types (e.g. tables, scheduler, api, login, etc.)
 
-var core = require('../core'),
-    TableHandler = require('./tablehandler'),
-    LoginHandler = require('./loginhandler'),
-    SchedulerHandler = require('./schedulerhandler'),
-    StatusHandler = require('./statushandler'),
-    DiagnosticsHandler = require('./diagnosticshandler'),
-    CrossDomainHandler = require('./html/crossdomainhandler'),
-    ApiBuilder = require('../script/apibuilder'),
-    util = require('util'),
-    StatusCodes = require('../statuscodes').StatusCodes,
-    fileHelpers = require('../filehelpers'),
-    CorsHelper = require('./html/corshelper'),
-    UserService = require('../users/userservice'),
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    Logger = require('../logger'),
-    uuid = require('request/uuid'),
-    resources = require('../resources'),
-    express = require('express'),
-    allowHandler = require('./middleware/allowhandler'),
-    bodyParser = require('./middleware/bodyparser'),
-    requestLimit = require('./middleware/requestlimit'),
-    errorHandler = require('./middleware/errorhandler'),
-    authenticate = require('./middleware/authenticate'),
-    authorize = require('./middleware/authorize'),
-    versionCheck = require('./middleware/versioncheck'),
-    requireHttpsMiddleware = require('./middleware/requirehttps'),
-    EtagHelper = require('./etaghelper.js'),
-    ErrorHelper = require('./errorhelper.js'),
-    Request = require('./request.js');
+var core = require('../core');
+
+var TableHandler = require('./tablehandler');
+var LoginHandler = require('./loginhandler');
+var SchedulerHandler = require('./schedulerhandler');
+var StatusHandler = require('./statushandler');
+var DiagnosticsHandler = require('./diagnosticshandler');
+var CrossDomainHandler = require('./html/crossdomainhandler');
+var ApiBuilder = require('../script/apibuilder');
+var util = require('util');
+var StatusCodes = require('../statuscodes').StatusCodes;
+var fileHelpers = require('../filehelpers');
+var CorsHelper = require('./html/corshelper');
+var UserService = require('../users/userservice');
+var _ = require('underscore');
+var _str = require('underscore.string');
+var Logger = require('../logger');
+var uuid = require('request/uuid');
+var resources = require('../resources');
+var express = require('express');
+var allowHandler = require('./middleware/allowhandler');
+var bodyParser = require('./middleware/bodyparser');
+var requestLimit = require('./middleware/requestlimit');
+var errorHandler = require('./middleware/errorhandler');
+var authenticate = require('./middleware/authenticate');
+var authorize = require('./middleware/authorize');
+var versionCheck = require('./middleware/versioncheck');
+var requireHttpsMiddleware = require('./middleware/requirehttps');
+var EtagHelper = require('./etaghelper.js');
+var ErrorHelper = require('./errorhelper.js');
+var Request = require('./request.js');
 
 _.mixin(_str.exports());
 
 exports = module.exports = RequestHandler;
 
-var logSource = 'RequestHandler',
-    version = null,
-    npmPackageVersion = require('../../package.json').version;
+var logSource = 'RequestHandler';
+var version = null;
+var npmPackageVersion = require('../../package.json').version;
 
 function RequestHandler(configPath, masterKey, systemKey, appName, authenticationCredentials, crossDomainWhitelist, applicationKey, runtimeVersion, requestTimeout, storage, scriptManager, logger, metrics, logLevel, logServiceURL, logServiceToken, maxRequestBodySize, newRelicAdapter, userService, pushAdapter, domainSuffix, requireHttps, skipVersionCheck) {
     this.requestTimeout = requestTimeout || 30 * 1000;
@@ -57,7 +58,7 @@ function RequestHandler(configPath, masterKey, systemKey, appName, authenticatio
     this.maxRequestBodySize = maxRequestBodySize;
     this.newRelicAdapter = newRelicAdapter;
     this.userService = userService || UserService.nullService;
-    this.corsHelper = new CorsHelper({ crossDomainWhitelist: crossDomainWhitelist });
+    this.corsHelper = new CorsHelper({ crossDomainWhitelist });
     this.domainSuffix = typeof domainSuffix != "undefined" ? domainSuffix : null;
     this.requireHttps = typeof(requireHttps) === 'string' && requireHttps.toLowerCase() === 'true';
     this.skipVersionCheck = skipVersionCheck;
@@ -73,9 +74,9 @@ function RequestHandler(configPath, masterKey, systemKey, appName, authenticatio
     this.pushAdapter = pushAdapter;
 
     this.keys = {
-        masterKey: masterKey,
-        applicationKey: applicationKey,
-        systemKey: systemKey
+        masterKey,
+        applicationKey,
+        systemKey
     };
 }
 
@@ -107,9 +108,9 @@ RequestHandler.prototype.initialize = function (app, extensionManager, done) {
     this.apiBuilder = new ApiBuilder(app, apiMiddleware, this.scriptManager, this.logger, this.metrics);
 
     core.async.parallel([
-        function (done) { self.scriptManager.initialize(done); },
-        function (done) { self.apiBuilder.build(done); },
-        function (done) { self.loginHandler.initialize(done); }
+        done => { self.scriptManager.initialize(done); },
+        done => { self.apiBuilder.build(done); },
+        done => { self.loginHandler.initialize(done); }
     ], done);
 };
 
@@ -238,8 +239,8 @@ RequestHandler.prototype._configureRoutes = function (app, sharedMiddleware) {
 
 // perform request initialization common to all handlers
 RequestHandler.prototype._beginRequest = function (req, res, next) {
-    var requestLogger = this._createRequestLogger(),
-        self = this;
+    var requestLogger = this._createRequestLogger();
+    var self = this;
 
     // Create the requestContext and start a request latency timer
     req._context = {
@@ -289,7 +290,7 @@ RequestHandler.prototype._beginRequest = function (req, res, next) {
 RequestHandler.prototype._wrapResponse = function (req, res, logger) {
     var self = this;
 
-    res.end = _.wrap(res.end, function (oldEnd, data, encoding) {
+    res.end = _.wrap(res.end, (oldEnd, data, encoding) => {
         if (!res.completed) {
             // a response was produced, so clear the timeout,
             // if a timeout has been applied to the request.
@@ -316,9 +317,9 @@ RequestHandler.prototype._createRequestLogger = function () {
 };
 
 function validateQuery(req, res, next) {
-    var requestContext = req._context,
-        logger = requestContext.logger,
-        parsedRequest = requestContext.parsedRequest;
+    var requestContext = req._context;
+    var logger = requestContext.logger;
+    var parsedRequest = requestContext.parsedRequest;
 
     try {
         Request.validateQuery(parsedRequest);
@@ -334,7 +335,7 @@ function validateQuery(req, res, next) {
 // Apply this middleware to a route to configure the required authorization
 // level for that route. Must be applied BEFORE the authorize middleware.
 function requireAuthorization(requiredLevel) {
-    return function (req, res, next) {
+    return (req, res, next) => {
         // set the required permission, which will be validated by the
         // authorize middleware
         req._context.parsedRequest.requiredPermission = requiredLevel;
@@ -348,10 +349,10 @@ RequestHandler.prototype._setPushPermission = function (req, res, next) {
 };
 
 RequestHandler.prototype._validateTable = function (req, res, next, tableName) {
-    var requestContext = req._context,
-        responseCallback = requestContext.responseCallback,
-        parsedRequest = requestContext.parsedRequest,
-        dataModel = this.scriptManager.getDataModel();
+    var requestContext = req._context;
+    var responseCallback = requestContext.responseCallback;
+    var parsedRequest = requestContext.parsedRequest;
+    var dataModel = this.scriptManager.getDataModel();
 
     // verify that the table exists
     var table = dataModel.getTable(tableName);
@@ -375,9 +376,9 @@ RequestHandler.prototype._validateTable = function (req, res, next, tableName) {
 };
 
 RequestHandler.prototype._validateJob = function (req, res, next, jobName) {
-    var requestContext = req._context,
-        responseCallback = requestContext.responseCallback,
-        dataModel = this.scriptManager.getDataModel();
+    var requestContext = req._context;
+    var responseCallback = requestContext.responseCallback;
+    var dataModel = this.scriptManager.getDataModel();
 
     // verify that job exists
     var job = dataModel.getJob(jobName);
@@ -394,7 +395,7 @@ RequestHandler.prototype._validateJob = function (req, res, next, jobName) {
     next();
 };
 
-RequestHandler.prototype._setRequestId = function (req, res, next, id) {
+RequestHandler.prototype._setRequestId = (req, res, next, id) => {
     req._context.parsedRequest.id = id;
     next();
 };
@@ -406,9 +407,9 @@ RequestHandler.prototype.redirectConsole = function () {
 
     // simplify the interface of logUser by defaulting the table, operation, etc.
     var logUser = function (logType) {
-        var logArgs = Array.prototype.slice.call(arguments, 1),
-            message = util.format.apply(null, logArgs),
-            source = core.getUserScriptSource();
+        var logArgs = Array.prototype.slice.call(arguments, 1);
+        var message = util.format.apply(null, logArgs);
+        var source = core.getUserScriptSource();
 
         if (!source) {
             // If not coming from user source, log directly to stdout.
@@ -430,8 +431,8 @@ RequestHandler.prototype.redirectConsole = function () {
 };
 
 function parseRequest(req, res, next) {
-    var requestContext = req._context,
-        logger = requestContext.logger;
+    var requestContext = req._context;
+    var logger = requestContext.logger;
 
     var parsedRequest;
     try {
@@ -468,8 +469,9 @@ function bindHandler(handler) {
 RequestHandler.prototype._traceRequest = function (req, res, next) {
     // we need to be careful not to log any sensitive request data
     // (e.g. actual body contents, authentication key values, etc.)
-    var parsedRequest = req._context.parsedRequest,
-        logger = req._context.logger;
+    var parsedRequest = req._context.parsedRequest;
+
+    var logger = req._context.logger;
 
     var traceData = {
         verb: parsedRequest.verb,

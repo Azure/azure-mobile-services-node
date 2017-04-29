@@ -6,12 +6,13 @@
 // login modules, it implements a very specific interface that is documented in
 // ../loginhandler.js.
 
-var core = require('../../core'),
-    jsonWebToken = require('../../jsonwebtoken'),
-    url = require('url'),
-    LoginHandler = require('../loginhandler.js'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var core = require('../../core');
+
+var jsonWebToken = require('../../jsonwebtoken');
+var url = require('url');
+var LoginHandler = require('../loginhandler.js');
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
@@ -35,7 +36,7 @@ function FacebookLoginHandler(authenticationCredentials, logger) {
     this.logger = logger;
 }
 
-FacebookLoginHandler.prototype.isNewServerFlowRequest = function (request) {
+FacebookLoginHandler.prototype.isNewServerFlowRequest = request => {
     var isNewFlow = true;
 
     // If the query includes either a 'code' parameter or an 'error' parameter
@@ -134,7 +135,7 @@ FacebookLoginHandler.prototype.getAuthorizationDetailsFromProviderToken = functi
         method: 'GET'
     };
 
-    LoginHandler.makeSecureRequest(graphApi, null, function (error, res, body) {
+    LoginHandler.makeSecureRequest(graphApi, null, (error, res, body) => {
         var authorizationDetails = null;
 
         // Ensure that the request was successful
@@ -185,7 +186,7 @@ FacebookLoginHandler.prototype.getAuthorizationDetailsFromProviderToken = functi
     });
 };
 
-FacebookLoginHandler.prototype._getUrlByRequestMode = function (request, urlName) {
+FacebookLoginHandler.prototype._getUrlByRequestMode = (request, urlName) => {
     var providerMode = request.query.useBeta ? 'beta' : 'prod';
     var url = urls[providerMode][urlName];    
     return url;
@@ -205,7 +206,7 @@ FacebookLoginHandler.prototype._normalizeScope = function () {
 };
 
 function _retrieveLongLivedAccessToken(options, errorPrefix, callback) {
-    LoginHandler.makeSecureRequest(options, null, function (error, res, body) {
+    LoginHandler.makeSecureRequest(options, null, (error, res, body) => {
 
         var providerToken = null;
 

@@ -22,7 +22,5 @@ ScriptCache.prototype.get = function (key) {
     return this.cache[key.toLowerCase()];
 };
 
-ScriptCache.prototype.getKey = function (scriptType, filename) {
-    // important to retain the filename extension to ensure uniqueness
-    return scriptType + '-' + filename;
-};
+ScriptCache.prototype.getKey = (scriptType, filename) => // important to retain the filename extension to ensure uniqueness
+scriptType + '-' + filename;

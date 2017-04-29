@@ -4,14 +4,14 @@
 // This module supports sending push notifications to Windows 8 clients using 
 // Windows Notification Services
 
-var wns = require('wns'),
-    notify = require('./notify'),
-    core = require('../../core');
+var wns = require('wns');
 
-exports.createWnsContext = function (client_secret, client_id) {
+var notify = require('./notify');
+var core = require('../../core');
 
-    var result = {},
-        accessTokenContainer = {};
+exports.createWnsContext = (client_secret, client_id) => {
+    var result = {};
+    var accessTokenContainer = {};
 
     // - accessToken is not passed back to the caller throught the callback
     // - only x-wns-* HTTP response headers are returned in the result or error
@@ -26,7 +26,7 @@ exports.createWnsContext = function (client_secret, client_id) {
             }
 
             if (typeof item.headers === 'object') {
-                Object.getOwnPropertyNames(item.headers).forEach(function (header) {
+                Object.getOwnPropertyNames(item.headers).forEach(header => {
                     if (header.toLowerCase().indexOf('x-wns-') !== 0) {
                         delete item.headers[header];
                     }

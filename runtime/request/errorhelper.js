@@ -4,12 +4,13 @@
 //
 // This module has helper functions for transforming exceptions to http errors
 
-var core = require('../core.js'),
-    StatusCodes = require('../statuscodes').StatusCodes;
+var core = require('../core.js');
+
+var StatusCodes = require('../statuscodes').StatusCodes;
 
 ErrorHelper = {};
 
-ErrorHelper.formatError = function (err, statusCode, requestID) {
+ErrorHelper.formatError = (err, statusCode, requestID) => {
     if (err) {
         var formattedErr;
         
@@ -75,11 +76,9 @@ ErrorHelper.formatError = function (err, statusCode, requestID) {
     return err;
 };
 
-ErrorHelper.createInternalServerError = function () {
-    return {
-        code: StatusCodes.INTERNAL_SERVER_ERROR,
-        error: 'Error: Internal Server Error'
-    };
-};
+ErrorHelper.createInternalServerError = () => ({
+    code: StatusCodes.INTERNAL_SERVER_ERROR,
+    error: 'Error: Internal Server Error'
+});
 
 exports = module.exports = ErrorHelper;

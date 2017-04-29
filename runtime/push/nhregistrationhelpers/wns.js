@@ -4,8 +4,9 @@
 //
 // This module is the helper to assist nhregistrationhandler with Wns registration operations
 
-var core = require('../../core'),
-    _ = require('underscore');
+var core = require('../../core');
+
+var _ = require('underscore');
 
 exports = module.exports = WnsHandler;
 
@@ -39,7 +40,10 @@ WnsHandler.prototype.transformInputToNhRegistration = function (inputRegistratio
         registration.BodyTemplate = inputRegistration.templateBody;
         if (inputRegistration.headers) {
             registration.WnsHeaders = {};
-            registration.WnsHeaders.WnsHeader = _.map(inputRegistration.headers, function (value, headerName) { return { Header: headerName, Value: value }; });
+            registration.WnsHeaders.WnsHeader = _.map(inputRegistration.headers, (value, headerName) => ({
+                Header: headerName,
+                Value: value
+            }));
         }
 
         if (inputRegistration.templateName) {
@@ -60,18 +64,16 @@ WnsHandler.prototype.listRegistrations = function (deviceId, callback) {
 };
 
 // Provides the specific property to snag the unique registration Id from
-WnsHandler.prototype.getDeviceIdFromNhRegistration = function (regFromNh) {
-    return regFromNh.ChannelUri;
-};
+WnsHandler.prototype.getDeviceIdFromNhRegistration = regFromNh => regFromNh.ChannelUri;
 
 // Converts any optional template members from Service Bus for this notifcation service into members of registration object
 // for transfer to the client
-WnsHandler.prototype.convertOptionalTemplatePropsToOutputRegistration = function (regFromNh, registration) {
+WnsHandler.prototype.convertOptionalTemplatePropsToOutputRegistration = (regFromNh, registration) => {
     if (regFromNh.WnsHeaders) {
         if (regFromNh.WnsHeaders.WnsHeader) {
             registration.headers = {};
             // {"WnsHeader":[{"Header":"X-WNS-TTL","Value":"1"},{"Header":"X-WNS-Type","Value":"wns/toast"}]}
-            _.each(regFromNh.WnsHeaders.WnsHeader, function (header) {
+            _.each(regFromNh.WnsHeaders.WnsHeader, header => {
                 registration.headers[header.Header] = header.Value;
             }, registration.headers);
         }

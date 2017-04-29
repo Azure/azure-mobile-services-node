@@ -4,9 +4,10 @@
 //
 // This module contains helper method for converting zumo style success/error option object into node style async callback.
 
-var _ = require('underscore'),
-    _str = require('underscore.string'),
-    scriptErrors = require('./scripterror');
+var _ = require('underscore');
+
+var _str = require('underscore.string');
+var scriptErrors = require('./scripterror');
 
 _.mixin(_str.exports());
 
@@ -30,7 +31,16 @@ ZumoCallback.moduleFailFormat = "Call into %s Module failed - %s";
 // options is the options object that needs to be transformed into node style callback
 // visitError is a function(error){...} that will be called before error callback is called
 // visitResult is a function(result){...} that will be called before success callback is called
-ZumoCallback.create = function (context, logSource, source, moduleName, method, options, visitError, visitResult) {
+ZumoCallback.create = (
+    context,
+    logSource,
+    source,
+    moduleName,
+    method,
+    options,
+    visitError,
+    visitResult
+) => {
     if (typeof options.success !== 'undefined' && !_.isFunction(options.success)) {
         context.logger.trace(logSource, _.sprintf(ZumoCallback.moduleFailFormat, moduleName, "Invalid success callback option"), ZumoCallback.getTraceDetails(source, method));
         throw new core.MobileServiceError('The options.success callback, if specified, must be a function.', core.ErrorCodes.ScriptError);
@@ -41,7 +51,7 @@ ZumoCallback.create = function (context, logSource, source, moduleName, method, 
         throw new core.MobileServiceError('The options.error callback, if specified, must be a function.', core.ErrorCodes.ScriptError);
     }
 
-    return function (error, result) {
+    return (error, result) => {
         // visit error and result
         if (error && visitError) {
             error = visitError(error);
@@ -74,9 +84,9 @@ ZumoCallback.create = function (context, logSource, source, moduleName, method, 
     };
 };
 
-ZumoCallback.getTraceDetails = function (source, method, error) {
+ZumoCallback.getTraceDetails = (source, method, error) => {
     var details = {
-        source: source
+        source
     };
 
     if (method) {
@@ -101,7 +111,17 @@ ZumoCallback.getTraceDetails = function (source, method, error) {
 // - allowedMethodPrefix -- Which method prefixes will be wrapped. (Example: ['send', 'receive']
 // - disallowedMethodPrefix -- Which methods that match allowed will be excluded because they have no callback (Example: ['sendNull'])
 // - responseCallback, -- is the request's default responseCallback in case user does not provice a callback
-ZumoCallback.wrapObject = function (objectToWrap, moduleNamePrefix, logSource, source, logger, metrics, allowedMethodPrefixes, disallowedMethodPrefixes, responseCallback) {
+ZumoCallback.wrapObject = (
+    objectToWrap,
+    moduleNamePrefix,
+    logSource,
+    source,
+    logger,
+    metrics,
+    allowedMethodPrefixes,
+    disallowedMethodPrefixes,
+    responseCallback
+) => {
     var wrapperObject = {};
     for (var prop in objectToWrap) {
         // if this is a method that should be wrapped, wrap it
@@ -165,7 +185,7 @@ function wrapperMethod(logSource, source, logger, metrics, responseCallback, mod
     }
 
     // create callback
-    var callback = ZumoCallback.create({ metrics: metrics, logger: logger, responseCallback: responseCallback }, logSource, source, moduleName, methodName, options);
+    var callback = ZumoCallback.create({ metrics, logger, responseCallback }, logSource, source, moduleName, methodName, options);
     args.push(callback);
 
     try {
@@ -188,7 +208,5 @@ function shouldWrapMethod(methodName, methodObject, allowedMethodPrefixes, disal
 // returns true if if the methodName starts with any string in methodPrefixList and false otherwise
 function methodNamePrefixInList(methodName, methodPrefixList) {
     return _.find(methodPrefixList,
-        function (methodPrefix) {
-            return _str.startsWith(methodName, methodPrefix);
-        });
+        methodPrefix => _str.startsWith(methodName, methodPrefix));
 }

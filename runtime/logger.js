@@ -2,11 +2,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-var core = require('./core'),
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    LogWriter = require('./logwriter'),
-    ConsoleLogWriter = require('./consolelogwriter');
+var core = require('./core');
+
+var _ = require('underscore');
+var _str = require('underscore.string');
+var LogWriter = require('./logwriter');
+var ConsoleLogWriter = require('./consolelogwriter');
 
 _.mixin(_str.exports());
 
@@ -73,7 +74,7 @@ Logger.prototype.log = function (level, type, source, summary, details, immediat
         // all entries regardless of log level
         // we do this to to dump as much information as possible to the logs
         // in unhandled exception scenarios        
-        this.bufferedRequestLogEntries.forEach(function (entry) {
+        this.bufferedRequestLogEntries.forEach(entry => {
             self.logWriter.writeSystem(entry);
         });
         this.bufferedRequestLogEntries = [];
@@ -158,7 +159,7 @@ Logger.prototype.logUserUnhandled = function (err) {
 Logger.prototype.logMetrics = function (metrics) {
     var self = this;
 
-    metrics.forEach(function (metric) {
+    metrics.forEach(metric => {
         self.logWriter.writeMetric(metric);
     });
 };
@@ -174,11 +175,11 @@ function createSystemLogEntry(requestID, timestamp, level, type, source, summary
     var entry = {
         activityID: requestID,
         timeCreated: timestamp,
-        level: level,
-        type: type,
-        source: source,
-        summary: summary,
-        details: details
+        level,
+        type,
+        source,
+        summary,
+        details
     };
 
     return entry;
@@ -199,9 +200,9 @@ Logger.prototype._createUserLogEntry = function createUserLogEntry(source, type,
 
     var entry = {
         timeCreated: this._getTimestamp(),
-        type: type,
-        source: source,
-        message: message
+        type,
+        source,
+        message
     };
 
     return entry;
@@ -230,7 +231,7 @@ Logger.prototype.clear = function () {
 };
 
 // performs global initialization of the Logger
-Logger.initialize = function (logServiceURL, logServiceToken, isLoggingServiceDisabled) {
+Logger.initialize = (logServiceURL, logServiceToken, isLoggingServiceDisabled) => {
     if (isLoggingServiceDisabled) {
         Logger.writer = new ConsoleLogWriter();
     } else {
@@ -240,11 +241,11 @@ Logger.initialize = function (logServiceURL, logServiceToken, isLoggingServiceDi
 
 // force an immediate flush of all cached log entries
 // not yet written
-Logger.flush = function () {
+Logger.flush = () => {
     Logger.writer.flush();
 };
 
 // clear all cached log entries
-Logger.clear = function () {
+Logger.clear = () => {
     Logger.writer.clear();
 };

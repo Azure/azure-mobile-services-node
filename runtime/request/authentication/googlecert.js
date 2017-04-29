@@ -4,8 +4,9 @@
 //
 // This module provides a way to asynchronously get Google certs to validate Google id tokens
 
-var LoginHandler = require('../loginhandler.js'),
-    certCacheHelper = require('./certcachehelper');
+var LoginHandler = require('../loginhandler.js');
+
+var certCacheHelper = require('./certcachehelper');
 
 exports = module.exports = GoogleCert;
 
@@ -42,7 +43,7 @@ GoogleCert.prototype.getCerts = function (callback, options) {
     var self = this;
 
     // Make call to get the certs
-    LoginHandler.makeSecureRequest(requestOptions, null, function (error, res, body) {
+    LoginHandler.makeSecureRequest(requestOptions, null, (error, res, body) => {
         var result = null;
 
         // Ensure that the request was successful

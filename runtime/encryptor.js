@@ -9,7 +9,7 @@ var crypto = require('crypto');
 function Encryptor() {
 }
 
-Encryptor.encrypt = function (key, plaintext) {
+Encryptor.encrypt = (key, plaintext) => {
     if (typeof plaintext !== 'string') {
         throw new Error('plaintext must be a string.');
     }
@@ -18,7 +18,7 @@ Encryptor.encrypt = function (key, plaintext) {
     return data;
 };
 
-Encryptor.decrypt = function (key, data) {
+Encryptor.decrypt = (key, data) => {
     var cipher = crypto.createDecipher('aes-256-cbc', key);
     var plaintext = cipher.update(data, 'base64', 'utf8') + cipher.final('utf8');
     return plaintext;

@@ -4,12 +4,13 @@
 // This module is the base for sending push notifications via Windows Azure Mobile Services
 // WNS, MPNS, and APNS all use this module to build out their notification client objects.
 
-var StatusCodes = require('../../statuscodes').StatusCodes,
-    core = require('../../core'),
-    scriptErrors = require('../../script/scripterror'),
-    ZumoCallback = require('../../script/zumocallback'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var StatusCodes = require('../../statuscodes').StatusCodes;
+
+var core = require('../../core');
+var scriptErrors = require('../../script/scripterror');
+var ZumoCallback = require('../../script/zumocallback');
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
@@ -18,7 +19,17 @@ var logSource = "Push";
 // transform methods to fit ZUMO esthetics:
 // - success and error callbacks are separate and specified as properties of the options object
 // - user can call these methods either with a single channel URL (or deviceToken) or with an array of channels (or deviceTokens)
-exports.createWrapper = function (module, method, argsLength, moduleName, visitResult, visitOptions, disableAtomizingChannelArrays, skipModuleOptions, finalizeArgs) {
+exports.createWrapper = (
+    module,
+    method,
+    argsLength,
+    moduleName,
+    visitResult,
+    visitOptions,
+    disableAtomizingChannelArrays,
+    skipModuleOptions,
+    finalizeArgs
+) => {
     var wrapper = function () {
         // Copy the arguments array and extract the pipelineContext
         var args = Array.prototype.slice.call(arguments);
@@ -53,7 +64,7 @@ exports.createWrapper = function (module, method, argsLength, moduleName, visitR
                 options = empty;
             }
 
-            var visitor = function (errOrResult) {
+            var visitor = errOrResult => {
                 if (visitResult) {
                     errOrResult = visitResult(errOrResult, args);
                 }
@@ -125,7 +136,7 @@ exports.createWrapper = function (module, method, argsLength, moduleName, visitR
     return wrapper;
 };
 
-exports.createWrappedClient = function (module, source, logger, metrics, responseCallback) {
+exports.createWrappedClient = (module, source, logger, metrics, responseCallback) => {
 
     // We instantiate the push client (wns, mpns, etc) when the server starts but we need to provide logging
     // and responseCallbacks per request. In this method we are wrapping the client with
@@ -133,10 +144,10 @@ exports.createWrappedClient = function (module, source, logger, metrics, respons
 
     // Create the pipeline context object
     var pipelineContext = {
-        logger: logger,
-        responseCallback: responseCallback,
+        logger,
+        responseCallback,
         scriptSource: source,
-        metrics: metrics
+        metrics
     };
 
     // Curry the pipelineContext object into every method

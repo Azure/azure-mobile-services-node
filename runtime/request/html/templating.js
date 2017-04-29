@@ -6,14 +6,14 @@
 // We could switch to a proper template engine at some point if desired
 
 exports = module.exports = {
-    render: render
+    render
 };
 
-var fs = require('fs'),
-    path = require('path'),
-    StatusCodes = require('../../statuscodes').StatusCodes,
-    templatesDir = path.resolve(__dirname, 'templates'),
-    templatesCache = readAllTemplatesSync(templatesDir); // Load only once on app initialization
+var fs = require('fs'); // Load only once on app initialization
+var path = require('path');
+var StatusCodes = require('../../statuscodes').StatusCodes;
+var templatesDir = path.resolve(__dirname, 'templates');
+var templatesCache = readAllTemplatesSync(templatesDir);
 
 function render(responseCallback, templateName, data, responseHeaders) {
     if (!templatesCache.hasOwnProperty(templateName)) {
@@ -45,13 +45,11 @@ function replaceTokens(text, tokens) {
 }
 
 function readAllTemplatesSync(dir) {
-    var files = fs.readdirSync(dir),
-        htmlFiles = files.filter(function (filename) {
-            return path.extname(filename) == '.html';
-        }),
-        result = {};
+    var files = fs.readdirSync(dir);
+    var htmlFiles = files.filter(filename => path.extname(filename) == '.html');
+    var result = {};
 
-    htmlFiles.forEach(function (filename) {
+    htmlFiles.forEach(filename => {
         result[filename] = fs.readFileSync(path.resolve(dir, filename), 'utf8');
     });
 

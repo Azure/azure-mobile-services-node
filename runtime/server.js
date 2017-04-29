@@ -4,34 +4,35 @@
 //
 // This module creates and initializes the HTTP server
 
-var path = require('path'),
-    NewRelicAdapter = require('./newrelicadapter'),
-    core = require('./core');
+var path = require('path');
+
+var NewRelicAdapter = require('./newrelicadapter');
+var core = require('./core');
 
 // If the customer has turned on New Relic we need to load this before anything else
 // so it can hook itself into the appropriate modules
 var newRelicAdapter = new NewRelicAdapter();
 newRelicAdapter.initialize(resolveConfigPath(process.env, __dirname));
 
-var RequestHandler = require('./request/requesthandler'),
-    FileWatcher = require('./filewatcher'),
-    net = require('net'),
-    Request = require('./request/request'),
-    Logger = require('./logger'),
-    StatusCodes = require('./statuscodes').StatusCodes,
-    core = require('./core'),
-    tripwire = require('tripwire'),
-    Metrics = require('./metrics'),
-    ScriptManager = require('./script/scriptmanager'),
-    ExtensionManager = require('./script/extensionmanager'),
-    Storage = require('./storage/Storage'),
-    UserService = require('./users/userservice'),
-    resource = require('./resources'),
-    _ = require('underscore'),
-    _str = require('underscore.string'),
-    express = require('express'),
-    PushAdapter = require('./push/pushadapter'),
-    util = require('util');
+var RequestHandler = require('./request/requesthandler');
+var FileWatcher = require('./filewatcher');
+var net = require('net');
+var Request = require('./request/request');
+var Logger = require('./logger');
+var StatusCodes = require('./statuscodes').StatusCodes;
+var core = require('./core');
+var tripwire = require('tripwire');
+var Metrics = require('./metrics');
+var ScriptManager = require('./script/scriptmanager');
+var ExtensionManager = require('./script/extensionmanager');
+var Storage = require('./storage/Storage');
+var UserService = require('./users/userservice');
+var resource = require('./resources');
+var _ = require('underscore');
+var _str = require('underscore.string');
+var express = require('express');
+var PushAdapter = require('./push/pushadapter');
+var util = require('util');
 
 _.mixin(_str.exports());
 
@@ -74,8 +75,8 @@ Server.resolveConfigPath = resolveConfigPath;
 Server.newRelicAdapter = newRelicAdapter;
 Server.getAuthenticationCredentials = getAuthenticationCredentials;
 
-Server.prototype.listen = function () {
-    this._server.listen.apply(this._server, arguments);
+Server.prototype.listen = function(...args) {
+    this._server.listen(...args);
 };
 
 Server.prototype._initializeLogging = function (env, options) {
@@ -85,7 +86,7 @@ Server.prototype._initializeLogging = function (env, options) {
 
     this._globalLogger = options.logger || new Logger(LogLevel[env.MS_LogLevel]);
 
-    Logger.writer.on('error', function (err) {
+    Logger.writer.on('error', err => {
         // we need this handler here to prevent errors
         // from bubbling up to the global exception handler, which would
         // cause the process to be killed
@@ -98,11 +99,11 @@ Server.prototype._initializeLogging = function (env, options) {
 };
 
 Server.prototype._createAndInitializeServices = function (env) {
-    var maxRequestBodySize = (env.MS_MaxRequestBodySizeKB || 1024) * 1024,
-        authenticationCredentials = getAuthenticationCredentials(env),
-        crossDomainWhitelist = parseJsonSetting(env.MS_CrossDomainWhitelist, this._globalLogger),
-        previewFeatures = parseJsonSetting(env.MS_PreviewFeatures, this._globalLogger),
-        configPath = resolveConfigPath(env, __dirname);
+    var maxRequestBodySize = (env.MS_MaxRequestBodySizeKB || 1024) * 1024;
+    var authenticationCredentials = getAuthenticationCredentials(env);
+    var crossDomainWhitelist = parseJsonSetting(env.MS_CrossDomainWhitelist, this._globalLogger);
+    var previewFeatures = parseJsonSetting(env.MS_PreviewFeatures, this._globalLogger);
+    var configPath = resolveConfigPath(env, __dirname);
 
     this._metrics = new Metrics(this._globalLogger, this._metricsFlushTimeout); // Five minutes default
 
@@ -120,8 +121,8 @@ Server.prototype._createAndInitializeServices = function (env) {
 };
 
 Server.prototype._createHttpServer = function (env) {
-    var server,
-        self = this;
+    var server;
+    var self = this;
 
     if (env.pfx) {
         server = require('https').createServer({ pfx: env.pfx, passphrase: env.passphrase }, this._app);
@@ -133,24 +134,24 @@ Server.prototype._createHttpServer = function (env) {
     // override the listen function so the server only starts listening
     // once all async initialization is complete
     var originalListen = server.listen;
-    server.listen = function () {
-        var listenArgs = arguments;
+    server.listen = function(...args) {
+        var listenArgs = args;
 
         var asyncStartupFunctions = [
-            function (done) { self._extensionManager.initialize(done); },
-            function (done) { self._requestHandler.initialize(self._app, self._extensionManager, done); }
+            done => { self._extensionManager.initialize(done); },
+            done => { self._requestHandler.initialize(self._app, self._extensionManager, done); }
         ];
 
         if (!self._pushAdapter.notificationHubPush) {
-            asyncStartupFunctions.push(function (done) {
+            asyncStartupFunctions.push(done => {
                 self._scriptManager.runFeedbackScript(3600000);
                 done();
             });
         }
 
-        asyncStartupFunctions.push(function (done) { self._extensionManager.runStartupScript(done); });
+        asyncStartupFunctions.push(done => { self._extensionManager.runStartupScript(done); });
 
-        core.async.series(asyncStartupFunctions, function () {
+        core.async.series(asyncStartupFunctions, () => {
             originalListen.apply(server, listenArgs);
             self._setupFileWatcher();
             self._globalLogger.log(LogLevel.Verbose, LogType.Information, logSource, "Server started and listening.");
@@ -165,12 +166,12 @@ Server.prototype._setupFileWatcher = function () {
     var self = this;
 
     var sentinelFilePath = path.join(this._homePath, 'site/wwwroot/sentinel');
-    this._fileWatcher = new FileWatcher(sentinelFilePath, self._globalLogger, this._sentinelFilePollInterval, function () {
+    this._fileWatcher = new FileWatcher(sentinelFilePath, self._globalLogger, this._sentinelFilePollInterval, () => {
         self._fileWatcher.stop();
         self._triggerRecycle();
     });
 
-    this._server.on('listening', function () {
+    this._server.on('listening', () => {
         self._fileWatcher.start();
     });
 };
@@ -187,7 +188,7 @@ Server.prototype._triggerRecycle = function () {
         // to process any outstanding requests, but new requests will
         // be routed by IIS Node to new instances.
         var stream = this.net.connect(this._iisNodeControlPipe);
-        stream.on('error', function (err) {
+        stream.on('error', err => {
             // if we get a stream error, we fall back to a
             // "hard shutdown" after logging the error
             self._shutdownProcess(0);
@@ -204,12 +205,12 @@ Server.prototype._triggerRecycle = function () {
 };
 
 Server.prototype._registerUncaughtExceptionListenerAndCreateHttpServer = function (env, logger) {
-    var tripwireContext = {},
-        tripwireKeepalive = parseInt(env.MS_TripwireKeepalive, 10) || 5000,
-        self = this;
+    var tripwireContext = {};
+    var tripwireKeepalive = parseInt(env.MS_TripwireKeepalive, 10) || 5000;
+    var self = this;
 
     // 99.9% of the time async errors will end up here and we assume all async errors belong to user code
-    this._onUncaughtException = function (e) {
+    this._onUncaughtException = e => {
         process.removeAllListeners('uncaughtException');
 
         var exitCode;
@@ -256,12 +257,12 @@ Server.prototype._shutdownProcess = function (exitCode, timeout) {
 
     // Wait a short period of time to allow any other logger instances a chance
     // to flush themselves (based on their flush timeouts).
-    setTimeout(function () {
+    setTimeout(() => {
         process.exit(exitCode);
     }, timeout);
 };
 
-Server.prototype._logGlobalException = function (e, isTripWireError, logger) {
+Server.prototype._logGlobalException = (e, isTripWireError, logger) => {
     if (e.loggedToSystem || e.loggedToUser) {
         // we've already logged this error
         return;

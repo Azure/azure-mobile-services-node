@@ -4,9 +4,10 @@
 //
 // Provides helper functions for interacting with the file system
 
-var fs = require('fs'),
-    _ = require('underscore'),
-    _str = require('underscore.string');
+var fs = require('fs');
+
+var _ = require('underscore');
+var _str = require('underscore.string');
 
 _.mixin(_str.exports());
 
@@ -18,7 +19,7 @@ exports.require = require;
 
 var retriableFileErrorCodes = ['EBUSY'];
 
-exports.removeExtension = function (fileName) {
+exports.removeExtension = fileName => {
     if (fileName) {
         var idx = fileName.lastIndexOf('.');
         if (idx > 0) {
@@ -31,14 +32,14 @@ exports.removeExtension = function (fileName) {
 // read a file asyncronously using the specified retry policy
 // maxRetries and retryInterval are optional
 exports.readFileWithRetries = function (filePath, logger, callback, maxRetries, retryInterval) {
-    var self = this,
-        retryCount = 0;
+    var self = this;
+    var retryCount = 0;
 
     maxRetries = maxRetries || 3;
     retryInterval = retryInterval || 500;
 
     function readFileWithRetries() {
-        self.fs.readFile(filePath, 'utf8', function (err, data) {
+        self.fs.readFile(filePath, 'utf8', (err, data) => {
             if (err) {
                 // if the error is retriable, try again, up to the max retry count
                 if (retriableFileErrorCodes.indexOf(err.code) !== -1 && retryCount++ < maxRetries) {
@@ -64,9 +65,9 @@ exports.readFileWithRetries = function (filePath, logger, callback, maxRetries, 
 // read a node module using the specified retry policy
 // maxRetries and retryInterval are optional
 exports.requireWithRetries = function (filePath, logger, callback, maxRetries, retryInterval) {
-    var self = this,
-        retryCount = 0,
-        loadedModule;
+    var self = this;
+    var retryCount = 0;
+    var loadedModule;
 
     maxRetries = maxRetries || 3;
     retryInterval = retryInterval || 500;

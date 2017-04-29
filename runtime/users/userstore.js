@@ -25,7 +25,7 @@ UserStore.prototype.isEnabled = function (callback) {
             top: 1
         };
 
-        this.storage.query(query, this.logger, null, function (err, results) {
+        this.storage.query(query, this.logger, null, (err, results) => {
             var tableNotFoundError = self._isTableNotFoundError(err);
             // if it is an error but not the expected table found error then we're not able to determine at this time whether users feature is enabled or not
             if (err && !tableNotFoundError) {
@@ -45,13 +45,14 @@ UserStore.prototype.isEnabled = function (callback) {
 
 // get user by 3rd party identity provider specific user id
 UserStore.prototype.getUserByProviderId = function (provider, providerId, callback) {
-    var self = this,
-        query = {
-            table: tableName,
-            filter: provider + "Id eq '" + providerId + "'"
-        };
+    var self = this;
 
-    this.storage.query(query, this.logger, null, function (err, results) {
+    var query = {
+        table: tableName,
+        filter: provider + "Id eq '" + providerId + "'"
+    };
+
+    this.storage.query(query, this.logger, null, (err, results) => {
         if (err) {
             self._callErrorCallback(err, callback);
             return;
@@ -70,7 +71,7 @@ UserStore.prototype.getUserByProviderId = function (provider, providerId, callba
 UserStore.prototype.updateUser = function (user, callback) {
     var self = this;
 
-    this.storage.update(tableName, user.id, user, this.logger, null, function (err, rowCount) {
+    this.storage.update(tableName, user.id, user, this.logger, null, (err, rowCount) => {
         if (err) {
             self._callErrorCallback(err, callback);
             return;
@@ -82,13 +83,13 @@ UserStore.prototype.updateUser = function (user, callback) {
 
 // create new user in the storage
 UserStore.prototype.createUser = function (provider, providerId, providerProperties, callback) {
-    var self = this,
-        user = {};
+    var self = this;
+    var user = {};
 
     user[provider + 'Id'] = providerId;
     user[provider + 'Properties'] = providerProperties;
 
-    this.storage.insert(tableName, user, this.logger, null, function (err, insertedUser) {
+    this.storage.insert(tableName, user, this.logger, null, (err, insertedUser) => {
         if (err) {
             self._callErrorCallback(err, callback);
             return;
@@ -100,14 +101,15 @@ UserStore.prototype.createUser = function (provider, providerId, providerPropert
 
 // get user by unique id
 UserStore.prototype.getUserById = function (userId, callback) {
-    var self = this,
-        query = {
-            table: tableName,
-            filter: "id eq '" + userId + "'",
-            top: 1
-        };
+    var self = this;
 
-    this.storage.query(query, this.logger, null, function (err, results) {
+    var query = {
+        table: tableName,
+        filter: "id eq '" + userId + "'",
+        top: 1
+    };
+
+    this.storage.query(query, this.logger, null, (err, results) => {
         if (err) {
             self._callErrorCallback(err, callback);
             return;
@@ -126,7 +128,7 @@ UserStore.prototype._callErrorCallback = function (err, callback) {
     }
 };
 
-UserStore.prototype._isTableNotFoundError = function (err) {
+UserStore.prototype._isTableNotFoundError = err => {
     var isTableNotFound = err &&
                           err.innerError &&
                           err.innerError.sqlstate === '42S02' &&

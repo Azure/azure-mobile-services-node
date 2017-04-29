@@ -11,14 +11,12 @@
 
 // The middleware should be registered very early in the pipeline.
 
-module.exports = function () {
-    return function (req, res, next) {
-        var secure = req.secure || req.headers['x-arr-ssl'];
+module.exports = () => (req, res, next) => {
+    var secure = req.secure || req.headers['x-arr-ssl'];
 
-        if (!secure) {
-            res.status(403).send('HTTPS connections are required for this service. Please update your endpoint to use the https protocol.').end();
-        } else {
-            next();
-        }
-    };
+    if (!secure) {
+        res.status(403).send('HTTPS connections are required for this service. Please update your endpoint to use the https protocol.').end();
+    } else {
+        next();
+    }
 };

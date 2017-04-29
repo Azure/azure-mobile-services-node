@@ -6,17 +6,18 @@
 // permisison of the request with the current auth level of the request. If
 // the request is not authorized, it will be rejected.
 
-var StatusCodes = require('../../statuscodes').StatusCodes,
-    LoginHandler = require('../loginhandler'),
-    core = require('../../core'),
-    _ = require('underscore');
+var StatusCodes = require('../../statuscodes').StatusCodes;
+
+var LoginHandler = require('../loginhandler');
+var core = require('../../core');
+var _ = require('underscore');
 
 exports = module.exports = function authorize(logSource, keys) {
-    return function (req, res, next) {
-        var requestContext = req._context,
-            responseCallback = requestContext.responseCallback,
-            logger = requestContext.logger,
-            parsedRequest = requestContext.parsedRequest;
+    return (req, res, next) => {
+        var requestContext = req._context;
+        var responseCallback = requestContext.responseCallback;
+        var logger = requestContext.logger;
+        var parsedRequest = requestContext.parsedRequest;
 
         logger.trace(logSource, 'Authorizing request');
 

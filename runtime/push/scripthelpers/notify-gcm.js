@@ -4,18 +4,19 @@
 // This module supports sending push notifications to Android clients using 
 // Google Cloud Messaging
 
-var dpush = require('dpush'),
-    notify = require('./notify'),
-    resources = require('../../resources');
+var dpush = require('dpush');
 
-exports.createGcmContext = function (googleApiKey) {
+var notify = require('./notify');
+var resources = require('../../resources');
+
+exports.createGcmContext = googleApiKey => {
 
     var result = {};
 
     // transform the dpush.send and dpush.sendAdvanced methods
 
     // gcm.send(recipiendId, message, [options]) -> dpush.send(googleApiKey, recipientId, message, callback):
-    result.send = notify.createWrapper(dpush, 'send', 2, 'gcm', null, null, true, true, function (args) {
+    result.send = notify.createWrapper(dpush, 'send', 2, 'gcm', null, null, true, true, args => {
         if (!googleApiKey) {
             throw new Error(resources.googleApiKeyMissing);
         }
@@ -37,7 +38,7 @@ exports.createGcmContext = function (googleApiKey) {
     
 
     // gcm.sendAdvanced(content, retryCount, [options]) -> dpush.sendAdvanced(googleApiKey, content, retryCount, callback):
-    result.sendAdvanced = notify.createWrapper(dpush, 'sendAdvanced', 2, 'gcm', null, null, true, true, function (args) {
+    result.sendAdvanced = notify.createWrapper(dpush, 'sendAdvanced', 2, 'gcm', null, null, true, true, args => {
         if (!googleApiKey) {
             throw new Error(resources.googleApiKeyMissing);
         }

@@ -4,10 +4,11 @@
 //
 // This is a module that has logic related to creating user object and getting its identities
 
-var _ = require('underscore'),
-    _str = require('underscore.string'),
-    ZumoCallback = require('../script/zumocallback'),
-    UserService = require('../users/userservice');
+var _ = require('underscore');
+
+var _str = require('underscore.string');
+var ZumoCallback = require('../script/zumocallback');
+var UserService = require('../users/userservice');
 
 _.mixin(_str.exports());
 
@@ -22,7 +23,7 @@ var logSource = 'User';
 //    metrics: {}
 //    logger: {}
 // }
-exports.create = function (requestContext, keys, userService) {
+exports.create = (requestContext, keys, userService) => {
     userService = userService || UserService.nullService;
 
     var request = requestContext.parsedRequest;
@@ -53,9 +54,9 @@ function GetIdentitiesHelper(requestContext, token, userService) {
 }
 
 GetIdentitiesHelper.prototype.invoke = function (callbackOrOptions) {
-    var script = this.requestContext.script || '',
-        metrics = this.requestContext.metrics,
-        logger = this.requestContext.logger;
+    var script = this.requestContext.script || '';
+    var metrics = this.requestContext.metrics;
+    var logger = this.requestContext.logger;
 
     if (!callbackOrOptions) {
         metrics.event('api.user.getIdentities');
@@ -67,10 +68,10 @@ GetIdentitiesHelper.prototype.invoke = function (callbackOrOptions) {
 };
 
 GetIdentitiesHelper.prototype._getIdentitiesAsync = function (script, callbackOrOptions) {
-    var metrics = this.requestContext.metrics,
-        logger = this.requestContext.logger,
-        self = this,
-        callback;
+    var metrics = this.requestContext.metrics;
+    var logger = this.requestContext.logger;
+    var self = this;
+    var callback;
 
     if (_.isFunction(callbackOrOptions)) {
         metrics.event('api.user.getIdentitiesAync');
@@ -82,7 +83,7 @@ GetIdentitiesHelper.prototype._getIdentitiesAsync = function (script, callbackOr
         callback = ZumoCallback.create(this.requestContext, logSource, script, 'user', 'getIdentities', callbackOrOptions);
     }
 
-    this.userService.isEnabled(function (err, isEnabled) {
+    this.userService.isEnabled((err, isEnabled) => {
         if (err) {
             callback(err);
             return;

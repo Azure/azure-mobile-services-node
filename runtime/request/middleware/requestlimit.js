@@ -5,18 +5,19 @@
 //
 // This middleware ensures the request size is under the specified byte limit
 
-var StatusCodes = require('../../statuscodes').StatusCodes,
-    resources = require('../../resources'),
-    core = require('../../core');
+var StatusCodes = require('../../statuscodes').StatusCodes;
+
+var resources = require('../../resources');
+var core = require('../../core');
 
 var logSource = 'RequestLimit';
 
 exports = module.exports = function requestLimit(maxByteLength) {
-    return function (req, res, next) {
-        var logger = req._context.logger,
-            contentLength = req.headers['content-length'] ? parseInt(req.headers['content-length'], 10) : null,
-            responseCallback = req._context.responseCallback,
-            receivedByteLength = 0;
+    return (req, res, next) => {
+        var logger = req._context.logger;
+        var contentLength = req.headers['content-length'] ? parseInt(req.headers['content-length'], 10) : null;
+        var responseCallback = req._context.responseCallback;
+        var receivedByteLength = 0;
 
         // limit by content-length
         if (contentLength && contentLength > maxByteLength) {
@@ -27,7 +28,7 @@ exports = module.exports = function requestLimit(maxByteLength) {
 
         // final catch-all limit, in case a content-length
         // hasn't been sent
-        req.on('data', function (chunk) {
+        req.on('data', chunk => {
             receivedByteLength += chunk.length;
             if (receivedByteLength > maxByteLength) {
                 logError(logger);

@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ----------------------------------------------------------------------------
 
-(function (exports) {
+((exports => {
 
     // storage messages
     exports.colNotInSchema = "Could not save item because it contains a column that is not in the table schema.";
@@ -47,4 +47,4 @@
     exports.newRelicError = 'A New Relic license key was found but the module could not be loaded. For more information on how to enable New Relic see http://go.microsoft.com/fwlink/?LinkID=327542';
     exports.itemNotFound = "An item with id '%s' does not exist.";
     
-})(typeof exports === 'undefined' ? (this.resource = {}) : exports);
+}))(typeof exports === 'undefined' ? (this.resource = {}) : exports);

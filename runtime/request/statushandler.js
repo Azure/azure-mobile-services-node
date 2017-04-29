@@ -15,9 +15,9 @@ var logSource = 'StatusHandler';
 function StatusHandler() {
 }
 
-StatusHandler.prototype.handle = function (req, res) {
-    var logger = req._context.logger,
-        responseCallback = req._context.responseCallback;
+StatusHandler.prototype.handle = (req, res) => {
+    var logger = req._context.logger;
+    var responseCallback = req._context.responseCallback;
 
     logger.trace(logSource, 'Processing request');
 

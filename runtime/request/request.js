@@ -4,12 +4,12 @@
 //
 // This module provides functions to parse a request into a request object used by the runtime.
 
-(function (global) {
+((global => {
     require('../query/queryparser');
 
-    var _ = require('underscore'),
-        _str = require('underscore.string'),
-        core = require('../core');
+    var _ = require('underscore');
+    var _str = require('underscore.string');
+    var core = require('../core');
 
     _.mixin(_str.exports());
 
@@ -181,5 +181,4 @@
     Request = global;
     Request.parse = parse;
     Request.validateQuery = validateQuery;
-
-})(typeof exports === "undefined" ? (this.Request = {}) : exports);
+}))(typeof exports === "undefined" ? (this.Request = {}) : exports);
